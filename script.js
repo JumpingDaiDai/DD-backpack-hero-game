@@ -45,11 +45,19 @@ class BackpackGame {
     this.energyDisplayEl = document.getElementById('energy-display');
     this.gameLogEl = document.getElementById('game-log');
     this.modalOverlayEl = document.getElementById('modal-overlay');
+    this.itemDetailBarEl = document.getElementById('item-detail-bar');
 
     // 綁定按鈕事件
     document.getElementById('rotate-btn').addEventListener('click', () => this.rotateSelected());
     document.getElementById('end-turn-btn').addEventListener('click', () => this.endTurn());
     document.getElementById('modal-next-btn').addEventListener('click', () => this.nextLevel());
+
+    // 全螢幕按鈕（Android Chrome 等支援 Fullscreen API 的瀏覽器可一鍵全螢幕；
+    // iOS Safari 對此 API 支援有限，主要仍建議「加入主畫面」以 PWA 模式啟動）
+    this.fullscreenBtnEl = document.getElementById('fullscreen-btn');
+    this.fullscreenBtnEl.addEventListener('click', () => this.toggleFullscreen());
+    document.addEventListener('fullscreenchange', () => this.updateFullscreenBtn());
+    document.addEventListener('webkitfullscreenchange', () => this.updateFullscreenBtn());
 
     // 備用箱也做成 Drop 區域（拖回備用箱）
     this.stashContainerEl.addEventListener('dragover', (e) => {
@@ -78,11 +86,47 @@ class BackpackGame {
     });
   }
 
+  isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  toggleFullscreen() {
+    if (this.isFullscreen()) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+      return;
+    }
+
+    const el = document.documentElement;
+    const request = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!request) {
+      this.log('這個瀏覽器不支援全螢幕 API，可改用「加入主畫面」以全螢幕模式啟動！');
+      return;
+    }
+
+    request.call(el).then(() => {
+      // 進入全螢幕後嘗試鎖定直向（部分瀏覽器不支援，失敗也不影響遊戲）
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait').catch(() => {});
+      }
+    }).catch(() => {
+      this.log('無法進入全螢幕，請改用「加入主畫面」以全螢幕模式啟動！');
+    });
+  }
+
+  updateFullscreenBtn() {
+    if (!this.fullscreenBtnEl) return;
+    const active = this.isFullscreen();
+    this.fullscreenBtnEl.textContent = active ? '⛝' : '⛶';
+    this.fullscreenBtnEl.title = active ? '離開全螢幕' : '全螢幕遊玩';
+  }
+
   initGame() {
     this.dungeonLevel = 0;
     this.player.hp = this.player.maxHp;
     this.player.block = 0;
     this.player.energy = this.player.maxEnergy;
+    this.clearStashSelection();
 
     // 初始贈送裝備進入備用箱
     this.stashItems = [
@@ -213,6 +257,50 @@ class BackpackGame {
     return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
   }
 
+  // 點擊物資箱 icon：選取並在畫面上方（角色區塊下方）顯示形狀／名稱／描述
+  selectStashItem(st) {
+    this.selectedStashItem = st;
+    this.renderItemDetail(st);
+    this.renderStash();
+    this.log(`選取了【${st.item.name}】！點擊背包網格或拖曳放入，按 R 鍵可旋轉。`);
+  }
+
+  clearStashSelection() {
+    this.selectedStashItem = null;
+    this.hideItemDetail();
+  }
+
+  renderItemDetail(st) {
+    if (!this.itemDetailBarEl) return;
+    const shape = st.shape;
+    const h = shape.length;
+    const w = shape[0].length;
+
+    let cellsHtml = '';
+    for (let r = 0; r < h; r++) {
+      for (let c = 0; c < w; c++) {
+        cellsHtml += `<span class="cell ${shape[r][c] ? '' : 'off'}"></span>`;
+      }
+    }
+
+    this.itemDetailBarEl.innerHTML = `
+      <span class="item-detail-icon">${st.item.icon}</span>
+      <span class="item-detail-shape" style="grid-template-columns: repeat(${w}, 1fr); grid-template-rows: repeat(${h}, 1fr);">${cellsHtml}</span>
+      <span class="item-detail-info">
+        <span class="item-detail-name">${st.item.name}<span class="item-detail-dim">${w}×${h}</span></span>
+        <span class="item-detail-desc">${st.item.description}</span>
+      </span>
+      <span class="item-detail-cost">⚡${st.item.cost}</span>
+    `;
+    this.itemDetailBarEl.classList.add('show');
+  }
+
+  hideItemDetail() {
+    if (!this.itemDetailBarEl) return;
+    this.itemDetailBarEl.classList.remove('show');
+    this.itemDetailBarEl.innerHTML = '';
+  }
+
   returnPlacedItemToStash(pi) {
     this.removePlacedItem(pi);
     this.stashItems.push({ instanceId: pi.instanceId, item: pi.item, shape: pi.shape });
@@ -271,7 +359,11 @@ class BackpackGame {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       state.dragging = true;
       this.draggedItemObj = { source: state.source, obj: state.obj };
-      if (state.source === 'stash') this.selectedStashItem = state.obj;
+      if (state.source === 'stash') {
+        // 拖曳中途避免重繪物資箱（會讓 state.el 失去參照），只更新詳情顯示
+        this.selectedStashItem = state.obj;
+        this.renderItemDetail(state.obj);
+      }
       state.ghost = this.createTouchGhost(state.obj);
       state.el.classList.add('dragging');
     }
@@ -361,55 +453,49 @@ class BackpackGame {
     }, 0);
   }
 
+  // 底部橫向物資箱：只顯示 icon，形狀／名稱／描述點擊後改顯示在上方 item-detail-bar
   renderStash() {
     this.stashContainerEl.innerHTML = '';
     if (this.stashItems.length === 0) {
-      this.stashContainerEl.innerHTML = '<div style="color:#6b7280; font-size:0.8rem; text-align:center; margin-top:20px;">備用箱空空如也</div>';
+      this.stashContainerEl.innerHTML = '<div class="stash-empty-hint">備用箱空空如也</div>';
       return;
     }
 
     this.stashItems.forEach((st) => {
-      const card = document.createElement('div');
-      card.className = `item-card ${this.selectedStashItem === st ? 'selected' : ''}`;
-      card.draggable = true; // 啟用 HTML5 拖曳
-
-      card.innerHTML = `
-        <div class="item-icon">${st.item.icon}</div>
-        <div class="item-details">
-          <div class="item-title">${st.item.name} (${st.shape[0].length}x${st.shape.length})</div>
-          <div class="item-desc">${st.item.description}</div>
-        </div>
-        <div class="item-cost">⚡${st.item.cost}</div>
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `stash-icon-btn ${this.selectedStashItem === st ? 'selected' : ''}`;
+      btn.draggable = true; // 啟用 HTML5 拖曳
+      btn.innerHTML = `
+        <span class="stash-icon-emoji">${st.item.icon}</span>
+        <span class="stash-icon-cost">⚡${st.item.cost}</span>
       `;
 
-      // 點擊選取
-      card.addEventListener('click', () => {
-        this.selectedStashItem = st;
-        this.log(`選取了【${st.item.name}】！點擊背包網格或拖曳放入，按 R 鍵可旋轉。`);
-        this.renderStash();
-      });
+      // 點擊：選取並在上方顯示詳情
+      btn.addEventListener('click', () => this.selectStashItem(st));
 
-      // 拖曳事件監聽 (搭配自訂形狀 DragImage 縮圖)
-      card.addEventListener('dragstart', (e) => {
+      // 拖曳事件監聽 (搭配自訂形狀 DragImage 縮圖)。拖曳中途不重繪物資箱，避免節點參照失效
+      btn.addEventListener('dragstart', (e) => {
         this.selectedStashItem = st;
+        this.renderItemDetail(st);
         this.draggedItemObj = { source: 'stash', obj: st };
-        card.classList.add('dragging');
+        btn.classList.add('dragging');
         this.createCustomDragImage(e, st);
         e.dataTransfer.setData('text/plain', st.instanceId);
       });
 
-      card.addEventListener('dragend', () => {
-        card.classList.remove('dragging');
+      btn.addEventListener('dragend', () => {
+        btn.classList.remove('dragging');
         this.clearGridHighlights();
       });
 
       // 手機觸控拖曳
-      card.addEventListener('touchstart', (e) => this.onTouchStart(e, 'stash', st, card), { passive: true });
-      card.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
-      card.addEventListener('touchend', (e) => this.onTouchEnd(e), { passive: false });
-      card.addEventListener('touchcancel', () => this.onTouchCancel(), { passive: true });
+      btn.addEventListener('touchstart', (e) => this.onTouchStart(e, 'stash', st, btn), { passive: true });
+      btn.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+      btn.addEventListener('touchend', (e) => this.onTouchEnd(e), { passive: false });
+      btn.addEventListener('touchcancel', () => this.onTouchCancel(), { passive: true });
 
-      this.stashContainerEl.appendChild(card);
+      this.stashContainerEl.appendChild(btn);
     });
   }
 
@@ -451,7 +537,7 @@ class BackpackGame {
 
       // 拖曳已放置的物品
       el.addEventListener('dragstart', (e) => {
-        this.selectedStashItem = null;
+        this.clearStashSelection();
         this.draggedItemObj = { source: 'placed', obj: pi };
         el.style.opacity = '0.5';
         this.createCustomDragImage(e, pi);
@@ -481,7 +567,7 @@ class BackpackGame {
       if (this.canPlaceItem(st.shape, targetR, targetC)) {
         this.placeItem(st, targetR, targetC);
         this.stashItems = this.stashItems.filter(s => s !== st);
-        this.selectedStashItem = null;
+        this.clearStashSelection();
         this.renderStash();
         this.renderPlacedItems();
         this.log(`成功將【${st.item.name}】拖曳放進背包！`);
@@ -516,7 +602,7 @@ class BackpackGame {
       if (this.canPlaceItem(st.shape, r, c)) {
         this.placeItem(st, r, c);
         this.stashItems = this.stashItems.filter(s => s !== st);
-        this.selectedStashItem = null;
+        this.clearStashSelection();
         this.renderStash();
         this.renderPlacedItems();
         this.log(`成功將【${st.item.name}】放進背包！`);
@@ -588,6 +674,7 @@ class BackpackGame {
     if (this.selectedStashItem) {
       this.selectedStashItem.shape = this.rotateMatrix(this.selectedStashItem.shape);
       this.log(`旋轉了【${this.selectedStashItem.item.name}】！`);
+      this.renderItemDetail(this.selectedStashItem);
       this.renderStash();
     } else {
       this.log('請先點擊選取備用箱中的裝備再進行旋轉！');

@@ -6,11 +6,22 @@
   <title>背包英雄：地牢大冒險 ⚔️🎒</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+
+  <!-- PWA：加入主畫面後可用 standalone 模式全螢幕啟動（無網址列、無瀏覽器 UI） -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#121316">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="背包英雄">
 </head>
 <body>
   <div class="game-container">
     <!-- 頂部標題區 -->
     <header class="header">
+      <button class="fullscreen-btn" id="fullscreen-btn" title="全螢幕遊玩" aria-label="切換全螢幕">⛶</button>
       <h1 class="game-title">BACKPACK HERO</h1>
       <span class="game-subtitle">🎒 背包英雄：地牢大冒險 ⚔️</span>
     </header>
@@ -46,6 +57,9 @@
       </div>
     </section>
 
+    <!-- 選取裝備詳情：點擊底部物資箱的 icon 後，形狀／名稱／描述顯示在這裡 -->
+    <section class="item-detail-bar" id="item-detail-bar"></section>
+
     <!-- 控制面板與能量區 -->
     <section class="control-panel">
       <div class="energy-box">
@@ -58,21 +72,12 @@
       </div>
     </section>
 
-    <!-- 主要遊戲區域 (背包 + 待整理備用區) -->
+    <!-- 主要遊戲區域 (背包網格) -->
     <main class="backpack-game-area">
-      <!-- 背包網格區域 -->
       <div class="section-box backpack-section">
         <h3>🎒 我的冒險背包 (拖曳擺放 / 點擊使用)</h3>
         <div class="grid-container" id="backpack-grid">
           <!-- 5x4 動態網格將由 JS 渲染 -->
-        </div>
-      </div>
-
-      <!-- 待整理物資區 -->
-      <div class="section-box stash-section">
-        <h3>📦 待整理物資箱</h3>
-        <div class="stash-container" id="stash-container">
-          <!-- 戰利品或未放入背包的裝備 -->
         </div>
       </div>
     </main>
@@ -81,6 +86,13 @@
     <footer class="log-panel">
       <div class="log-message" id="game-log">歡迎來到地牢！將備用箱的裝備拖入背包，並發動攻擊吧！</div>
     </footer>
+
+    <!-- 待整理物資箱：畫面最底部的橫向 icon 列，點擊 icon 看詳情、拖曳放入背包 -->
+    <section class="stash-bar-section">
+      <div class="stash-bar" id="stash-container">
+        <!-- 戰利品或未放入背包的裝備 -->
+      </div>
+    </section>
   </div>
 
   <!-- 戰利品 / 獲勝結算 Modal -->
