@@ -201,7 +201,6 @@ class BackpackGame {
     const cellWidth = 60;
     const cellHeight = 60;
     const gap = 6;
-    const padding = 10;
 
     this.placedItems.forEach((pi) => {
       const el = document.createElement('div');
@@ -211,10 +210,15 @@ class BackpackGame {
       const widthCols = pi.shape[0].length;
       const heightRows = pi.shape.length;
 
-      el.style.width = `${widthCols * cellWidth + (widthCols - 1) * gap}px`;
-      el.style.height = `${heightRows * cellHeight + (heightRows - 1) * gap}px`;
-      el.style.left = `${padding + pi.c * (cellWidth + gap)}px`;
-      el.style.top = `${padding + pi.r * (cellHeight + gap)}px`;
+      // 取得起點格子 DOM，精準取得其相對於 grid-container 的絕對偏移距離 offsetLeft / offsetTop
+      const targetCell = this.backpackGridEl.querySelector(`.grid-cell[data-r="${pi.r}"][data-c="${pi.c}"]`);
+      
+      if (targetCell) {
+        el.style.width = `${widthCols * cellWidth + (widthCols - 1) * gap}px`;
+        el.style.height = `${heightRows * cellHeight + (heightRows - 1) * gap}px`;
+        el.style.left = `${targetCell.offsetLeft}px`;
+        el.style.top = `${targetCell.offsetTop}px`;
+      }
 
       el.innerHTML = `
         <span style="font-size: 1.4rem;">${pi.item.icon}</span>
