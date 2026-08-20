@@ -1,0 +1,749 @@
+<title>地牢背包手冊</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700;900&family=EB+Garamond:ital,wght@0,500;1,500&display=swap');
+
+  :root {
+    --bg: #eceef1;
+    --bg-wash: #e2e5eb;
+    --panel: #fbfbfa;
+    --border: #c9cdd6;
+    --text: #1b1d24;
+    --text-muted: #565b68;
+    --accent: #93641f;
+    --accent-strong: #7a5119;
+    --weapon: #a3402f;
+    --shield: #2c6b68;
+    --potion: #3f7d43;
+    --accessory: #6b4a86;
+    --shadow: 0 18px 40px rgba(27, 29, 36, 0.10);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14151b;
+      --bg-wash: #191b23;
+      --panel: #1d1f28;
+      --border: #343747;
+      --text: #ecebe6;
+      --text-muted: #9a9fae;
+      --accent: #d6a24d;
+      --accent-strong: #e8b968;
+      --weapon: #d1715c;
+      --shield: #59a9a3;
+      --potion: #74b378;
+      --accessory: #a988c4;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14151b;
+    --bg-wash: #191b23;
+    --panel: #1d1f28;
+    --border: #343747;
+    --text: #ecebe6;
+    --text-muted: #9a9fae;
+    --accent: #d6a24d;
+    --accent-strong: #e8b968;
+    --weapon: #d1715c;
+    --shield: #59a9a3;
+    --potion: #74b378;
+    --accessory: #a988c4;
+    --shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', 'Segoe UI', sans-serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 { font-family: 'Noto Serif TC', 'Noto Sans TC', serif; text-wrap: balance; color: var(--text); }
+
+  a { color: var(--accent-strong); }
+
+  .eyebrow {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    color: var(--accent-strong);
+  }
+
+  .label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    max-width: 1180px;
+    margin: 0 auto;
+    gap: 0;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 40px 22px 40px 32px;
+    border-right: 1px solid var(--border);
+  }
+
+  .sidebar-mark {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+
+  .toc { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+  .toc a {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 7px 10px;
+    border-radius: 3px;
+    border-left: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+
+  .toc a .n { font-family: 'EB Garamond', serif; font-style: italic; font-size: 0.8rem; color: var(--border); }
+
+  .toc a:hover, .toc a.active {
+    color: var(--text);
+    border-left-color: var(--accent);
+    background: var(--bg-wash);
+  }
+  .toc a.active .n { color: var(--accent-strong); }
+
+  .sidebar-stats {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stat-row { display: flex; justify-content: space-between; font-size: 0.8rem; }
+  .stat-row span:last-child { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); }
+
+  /* ---------- Main ---------- */
+  .main { padding: 56px 48px 100px; min-width: 0; }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 40px;
+    align-items: center;
+    padding-bottom: 44px;
+    margin-bottom: 44px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero h1 { font-size: 2.6rem; font-weight: 900; margin: 10px 0 14px; }
+  .hero .pitch { font-size: 1.05rem; color: var(--text-muted); max-width: 46ch; }
+
+  .hero-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
+  .tag {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px; color: var(--text-muted);
+  }
+
+  /* Hero grid mock */
+  .hero-grid-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .hero-grid-card .cap { font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 10px; }
+
+  .mock-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 4px;
+    aspect-ratio: 5 / 4;
+    position: relative;
+  }
+  .mock-cell { background: var(--bg-wash); border: 1px solid var(--border); border-radius: 3px; }
+  .mock-item {
+    position: absolute;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    border: 1.5px solid;
+  }
+
+  section { margin-bottom: 64px; scroll-margin-top: 24px; }
+  section > .label { margin-bottom: 8px; }
+  section > h2 { font-size: 1.7rem; margin: 0 0 18px; }
+  section > p.intro { color: var(--text-muted); max-width: 62ch; margin-bottom: 26px; }
+
+  /* Core loop steps */
+  .steps { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--border); }
+  .step { display: grid; grid-template-columns: 56px minmax(0,1fr); gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+  .step .num { font-family: 'Noto Serif TC', serif; font-weight: 700; font-size: 1.6rem; color: var(--accent); }
+  .step h3 { font-size: 1.02rem; margin: 0 0 5px; }
+  .step p { margin: 0; color: var(--text-muted); font-size: 0.92rem; max-width: 60ch; }
+
+  /* Two column mechanic panels */
+  .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px;
+  }
+  .panel h3 { font-size: 1rem; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+  .panel p { font-size: 0.88rem; color: var(--text-muted); margin: 0; }
+  .panel + .panel { }
+
+  /* Shape swatch */
+  .shape-swatch { display: inline-grid; gap: 3px; vertical-align: middle; }
+  .shape-cell { width: 15px; height: 15px; border-radius: 2px; background: var(--bg-wash); border: 1px solid var(--border); }
+  .shape-cell.on { border: none; }
+
+  /* Combat stat cards */
+  .combat-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .stat-card .label { margin-bottom: 8px; }
+  .stat-card .val { font-family: 'Noto Serif TC', serif; font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-card .sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+
+  .flow-note {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: var(--bg-wash); border-left: 3px solid var(--accent);
+    padding: 14px 18px; border-radius: 0 6px 6px 0; font-size: 0.88rem; color: var(--text-muted);
+  }
+
+  /* Merge / star-up demo */
+  .merge-demo { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 8px 0 28px; flex-wrap: wrap; }
+  .merge-chip {
+    position: relative; width: 64px; height: 64px; flex-shrink: 0;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: var(--shadow);
+  }
+  .merge-chip .star-badge {
+    position: absolute; bottom: -8px; left: -8px; background: var(--accent); color: #fff;
+    font-size: 0.66rem; font-weight: 700; padding: 2px 6px; border-radius: 8px; white-space: nowrap;
+  }
+  .merge-op { font-size: 1.6rem; color: var(--text-muted); font-weight: 300; }
+
+  .star-table { display: flex; gap: 14px; flex-wrap: wrap; }
+  .star-tier { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 20px; text-align: center; flex: 1; min-width: 120px; }
+  .star-tier .stars { color: var(--accent); font-size: 1rem; margin-bottom: 4px; letter-spacing: 2px; }
+  .star-tier .mult { font-family: 'Noto Serif TC', serif; font-weight: 700; font-size: 1.3rem; }
+  .star-tier .mult-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* Item compendium */
+  .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .item-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .item-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .item-icon { font-size: 1.7rem; }
+  .item-name { font-weight: 700; font-size: 0.98rem; margin-top: 4px; }
+  .item-type-pill {
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+  }
+  .item-desc { font-size: 0.84rem; color: var(--text-muted); flex: 1; }
+  .item-foot { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px; }
+  .cost-pip { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); }
+
+  /* Bestiary */
+  .beast-list { display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+  .beast {
+    display: grid; grid-template-columns: 40px 1fr 100px 100px 140px;
+    align-items: center; gap: 16px; padding: 14px 4px; border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .beast-emoji { font-size: 1.5rem; }
+  .beast-name { font-weight: 700; }
+  .beast-stat-label { font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; display: block; }
+  .beast-stat-val { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .beast-bar-wrap { height: 6px; background: var(--bg-wash); border-radius: 3px; overflow: hidden; }
+  .beast-bar { height: 100%; background: var(--weapon); }
+  .beast-head { font-size: 0.66rem; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; padding: 0 4px 10px; border-bottom: 1px solid var(--border); }
+  .beast-head-row { display: grid; grid-template-columns: 40px 1fr 100px 100px 140px; gap: 16px; }
+
+  /* Controls */
+  .control-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .control-item {
+    display: grid; grid-template-columns: 90px 1fr; gap: 14px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+  }
+  .kbd {
+    font-family: 'EB Garamond', serif;
+    text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 4px; background: var(--bg-wash);
+  }
+  .control-item p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+  .control-item p b { color: var(--text); font-weight: 700; }
+
+  footer {
+    margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--border);
+    font-size: 0.78rem; color: var(--text-muted); display: flex; justify-content: space-between;
+  }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .hero { grid-template-columns: 1fr; }
+    .hero-grid-card { max-width: 320px; }
+    .panel-grid, .item-grid, .control-grid, .combat-stats { grid-template-columns: 1fr; }
+    .beast, .beast-head-row { grid-template-columns: 32px 1fr 80px; }
+    .beast > :nth-child(4), .beast > :nth-child(5), .beast-head-row > :nth-child(4), .beast-head-row > :nth-child(5) { display: none; }
+    .main { padding: 40px 22px 80px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-mark">地牢背包手冊</div>
+    <div class="sidebar-sub">BACKPACK HERO · 玩法說明書</div>
+    <ul class="toc" id="toc">
+      <li><a href="#overview"><span class="n">i</span>總覽</a></li>
+      <li><a href="#loop"><span class="n">ii</span>核心玩法</a></li>
+      <li><a href="#grid"><span class="n">iii</span>背包網格系統</a></li>
+      <li><a href="#combat"><span class="n">iv</span>戰鬥數值</a></li>
+      <li><a href="#merge"><span class="n">v</span>合成升星</a></li>
+      <li><a href="#items"><span class="n">vi</span>裝備圖鑑</a></li>
+      <li><a href="#bestiary"><span class="n">vii</span>敵人圖鑑</a></li>
+      <li><a href="#controls"><span class="n">viii</span>操作方式</a></li>
+      <li><a href="#mobile"><span class="n">ix</span>手機與全螢幕</a></li>
+    </ul>
+    <div class="sidebar-stats">
+      <div class="stat-row"><span>背包網格</span><span>5 × 4</span></div>
+      <div class="stat-row"><span>起始生命</span><span>50</span></div>
+      <div class="stat-row"><span>每回合能量</span><span>3</span></div>
+      <div class="stat-row"><span>地牢層數</span><span>4 關</span></div>
+      <div class="stat-row"><span>裝備種類</span><span>13 種</span></div>
+      <div class="stat-row"><span>最高星等</span><span>★★★</span></div>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <section class="hero" id="overview">
+      <div>
+        <div class="eyebrow">A Grid-Inventory Dungeon Battler</div>
+        <h1>背包英雄：地牢大冒險</h1>
+        <p class="pitch">這是一款把「整理背包」變成戰鬥策略的回合制地牢遊戲。你的攻擊力不是點按鈕打出來的，而是把武器、盾牌、藥水像拼圖一樣塞進 5×4 的背包網格裡排出來的——擺得好，一回合就能連續開好幾刀；擺得亂，能量和空間都會卡住你。同款裝備還能合成升星，手機上也能滿版全螢幕遊玩。</p>
+        <div class="hero-tags">
+          <span class="tag">回合制戰鬥</span>
+          <span class="tag">網格式背包</span>
+          <span class="tag">拖曳 / 旋轉</span>
+          <span class="tag">合成升星</span>
+          <span class="tag">手機觸控 / 全螢幕</span>
+        </div>
+      </div>
+      <div class="hero-grid-card">
+        <div class="mock-grid" id="hero-grid">
+          <!-- 20 background cells -->
+        </div>
+        <div class="cap">背包網格上的裝備擺放示意（形狀即戰力）</div>
+      </div>
+    </section>
+
+    <section id="loop">
+      <div class="label">Section II</div>
+      <h2>核心玩法：一回合的四個動作</h2>
+      <p class="intro">每一層地牢戰鬥都圍繞同一套循環進行。看懂這個循環，就等於看懂了整個遊戲。</p>
+      <div class="steps">
+        <div class="step">
+          <div class="num">01</div>
+          <div>
+            <h3>把物資箱裡的裝備放進背包</h3>
+            <p>「待整理物資箱」裡是還沒上場的裝備。拖曳到背包網格上，或先點擊選取、再點格子放置——只有真正放進背包網格裡的裝備才能使用。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">02</div>
+          <div>
+            <h3>視需要旋轉，塞出更省空間的排列</h3>
+            <p>板甲是 2×3、鐵劍是直立 1×2，形狀各不相同。選取物資箱中的裝備後按 <b>R</b> 鍵或點「旋轉物品」，可將形狀順時針轉 90°，找出能塞進剩餘空格的角度。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">03</div>
+          <div>
+            <h3>點擊背包裡的裝備發動效果</h3>
+            <p>點擊已放置的裝備即可使用：武器造成傷害、盾牌獲得護盾、藥水恢復生命或回能量。每次使用會消耗對應的能量點數，但每件裝備<b>每回合只能使用一次</b>——用過的裝備會變灰、無法再點，避免像刺客匕首這種 0 能量消耗的武器被無限連打。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">04</div>
+          <div>
+            <h3>結束回合，承受敵人的反擊</h3>
+            <p>按下「結束回合」，或能量用到 0 時<b>自動結束回合</b>：畫面正中央會浮現「⏳ 回合結束」提示、0.5 秒後淡出，接著敵人發動攻擊——剩餘護盾先抵擋傷害，超出的部分才會扣血。回合結束後能量補滿、所有裝備的使用鎖定也會一併解除。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="grid">
+      <div class="label">Section III</div>
+      <h2>背包網格系統</h2>
+      <p class="intro">背包是一張固定的 5 欄 × 4 列網格。裝備不是塞進「格子」而是塞進「形狀」——這是整個遊戲策略的核心。</p>
+      <div class="panel-grid">
+        <div class="panel">
+          <h3>🧩 形狀即空間成本</h3>
+          <p>每件裝備都有自己的網格佔用形狀，從 1×1 的小道具到 2×3 的重型板甲不等。網格總容量只有 20 格，裝備越大越強，但也越擠壓其他裝備的擺放空間，形成「戰力 vs. 空間」的取捨。</p>
+        </div>
+        <div class="panel">
+          <h3>🔄 旋轉改變外框</h3>
+          <p>旋轉會把形狀矩陣轉 90°，讓長條形裝備可以直放或橫放。同一件裝備、不同角度能塞進的空位完全不同，善用旋轉是排出高密度背包的關鍵技巧。</p>
+        </div>
+        <div class="panel">
+          <h3>🖱️ 拖曳即時預覽</h3>
+          <p>拖曳裝備移動到背包上方時，形狀涵蓋的所有格子會同步亮起：藍色代表可以放置，紅色代表空間重疊或超出邊界，放手前就能確認合法位置。</p>
+        </div>
+        <div class="panel">
+          <h3>📦 背包內外可自由調度</h3>
+          <p>已放進背包的裝備仍可再次拖曳，換到網格內的其他位置，或直接拖回底部物資箱取消部署——排錯了隨時能重新調整，不會浪費裝備。</p>
+        </div>
+        <div class="panel">
+          <h3>🔍 點擊 icon 看詳情</h3>
+          <p>待整理的裝備現在是畫面最底部的一整排橫向 icon，只顯示圖示與能量消耗。點擊任一 icon，形狀、名稱、描述會浮動顯示在畫面上方的角色對戰區塊上，看完再點別處收合，不會佔用或推擠版面。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="combat">
+      <div class="label">Section IV</div>
+      <h2>戰鬥數值</h2>
+      <p class="intro">戰鬥的勝負由三個數值互相牽動：能量決定你這回合能做多少事、護盾決定你能扛下多少反擊、生命值歸零則遊戲結束。</p>
+      <div class="combat-stats">
+        <div class="stat-card">
+          <div class="label">生命值</div>
+          <div class="val">50 / 50</div>
+          <div class="sub">歸零即戰鬥失敗，需從第 1 層重新開始</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">每回合能量</div>
+          <div class="val">3</div>
+          <div class="sub">結束回合後全額恢復，用來發動裝備效果</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">護盾</div>
+          <div class="val">累加式</div>
+          <div class="sub">先抵銷敵方攻擊，未消耗的護盾會留到下回合</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">被動加成</div>
+          <div class="val">位置觸發</div>
+          <div class="sub">特定裝備相鄰擺放時會互相增強效果</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">每回合使用限制</div>
+          <div class="val">限用一次</div>
+          <div class="sub">武器／防具／藥水每回合只能發動一次，用過會變灰</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">能量耗盡</div>
+          <div class="val">自動結束</div>
+          <div class="sub">能量歸零立刻進入敵人回合，不用手動按按鈕</div>
+        </div>
+      </div>
+      <div class="flow-note">
+        以紅寶石為例：把它擺在武器正下方（同一欄、緊接武器形狀的下一格），使用該武器時會自動疊加傷害——被動裝備的效果完全取決於「擺放位置」，而不是放進背包這個動作本身。藍寶石則是同樣的邏輯，但加成對象是正上方的防具。
+      </div>
+    </section>
+
+    <section id="merge">
+      <div class="label">Section V</div>
+      <h2>合成升星</h2>
+      <p class="intro">物資箱裡的裝備可以疊起來變強。選取一件裝備後，點擊另一件「相同裝備、且星等一致」的裝備，兩者就會合成為一件星等更高的裝備，最高可以疊到 3 星。</p>
+
+      <div class="merge-demo">
+        <div class="merge-chip">⚔️<span class="star-badge">★1</span></div>
+        <div class="merge-op">+</div>
+        <div class="merge-chip">⚔️<span class="star-badge">★1</span></div>
+        <div class="merge-op">→</div>
+        <div class="merge-chip">⚔️<span class="star-badge">★2</span></div>
+      </div>
+
+      <p class="intro" style="margin-bottom: 14px;">升星不會改變裝備的形狀或能量消耗，只會放大它的數值效果——武器傷害、防具護盾、藥水的治療與回能量、甚至寶石類被動加成，全部一起套用倍率：</p>
+
+      <div class="star-table">
+        <div class="star-tier">
+          <div class="stars">★</div>
+          <div class="mult">×1.0</div>
+          <div class="mult-label">基礎效果</div>
+        </div>
+        <div class="star-tier">
+          <div class="stars">★★</div>
+          <div class="mult">×1.5</div>
+          <div class="mult-label">例：鐵劍 7 → 11 傷害</div>
+        </div>
+        <div class="star-tier">
+          <div class="stars">★★★</div>
+          <div class="mult">×2.0</div>
+          <div class="mult-label">已達最高星等，無法再合成</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="items">
+      <div class="label">Section VI</div>
+      <h2>裝備圖鑑</h2>
+      <p class="intro">目前共有 13 種裝備，涵蓋武器、防具、藥水與被動配件四種類型。戰鬥勝利後會從全部裝備中隨機掉落一件戰利品。以下數值皆為 1 星基礎值。</p>
+      <div class="item-grid" id="item-grid"></div>
+    </section>
+
+    <section id="bestiary">
+      <div class="label">Section VII</div>
+      <h2>敵人圖鑑</h2>
+      <p class="intro">地牢共有 4 層，層數越深敵人生命與攻擊力越高。擊敗第 4 層的黑龍後，後續戰鬥會持續遭遇黑龍等級的挑戰。</p>
+      <div class="beast-head-row">
+        <span></span>
+        <span class="beast-head">敵人</span>
+        <span class="beast-head">生命值</span>
+        <span class="beast-head">攻擊力</span>
+        <span class="beast-head">生命條</span>
+      </div>
+      <div class="beast-list" id="beast-list"></div>
+    </section>
+
+    <section id="controls">
+      <div class="label">Section VIII</div>
+      <h2>操作方式</h2>
+      <p class="intro">滑鼠點擊、拖曳，或手機上的手指觸控都能完成整套流程，鍵盤僅用於快速旋轉。</p>
+      <div class="control-grid">
+        <div class="control-item">
+          <div class="kbd">點擊</div>
+          <p><b>選取裝備</b> — 點擊底部物資箱的 icon 選取，形狀／名稱／描述會浮現在上方角色區塊，再點擊背包格子即可放置。</p>
+        </div>
+        <div class="control-item">
+          <div class="kbd">再點一次</div>
+          <p><b>合成升星</b> — 選取一件裝備後，點擊另一件相同裝備且星等相同者即可合成升星。</p>
+        </div>
+        <div class="control-item">
+          <div class="kbd">拖曳 / 觸控</div>
+          <p><b>直接放置 / 移動</b> — 用滑鼠拖曳，或手機上直接用手指拖曳裝備到背包網格，也能拖動已放置的裝備更換位置。</p>
+        </div>
+        <div class="control-item">
+          <div class="kbd">R</div>
+          <p><b>旋轉裝備</b> — 對已選取的裝備順時針旋轉 90°，尋找更合適的擺放角度。</p>
+        </div>
+        <div class="control-item">
+          <div class="kbd">拖回底部</div>
+          <p><b>取消部署</b> — 把背包內的裝備拖回底部物資箱，即可移出背包、暫停使用。</p>
+        </div>
+        <div class="control-item">
+          <div class="kbd">點擊</div>
+          <p><b>發動效果</b> — 點擊已放進背包的裝備使用，每件裝備每回合限用一次，用過會變灰。</p>
+        </div>
+        <div class="control-item">
+          <div class="kbd">結束回合</div>
+          <p><b>交回主動權</b> — 手動點擊或能量歸零自動觸發，敵人攻擊、能量與裝備使用限制全部重置。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="mobile">
+      <div class="label">Section IX</div>
+      <h2>手機與全螢幕</h2>
+      <p class="intro">遊戲已針對手機瀏覽器調整，畫面滿版顯示、不會整頁捲動，並支援兩種取得「無瀏覽器介面」全螢幕體驗的方式。</p>
+      <div class="panel-grid">
+        <div class="panel">
+          <h3>📲 加入主畫面（推薦）</h3>
+          <p>用手機瀏覽器打開遊戲，透過選單「加入主畫面」，之後從主畫面圖示啟動就會是完全沒有網址列、狀態列融入畫面的獨立體驗，iOS 與 Android 都適用。</p>
+        </div>
+        <div class="panel">
+          <h3>⛶ 全螢幕按鈕</h3>
+          <p>標題列右上角的按鈕會呼叫瀏覽器原生的全螢幕 API，Android Chrome 上可直接點擊生效；iPhone Safari 對此 API 支援有限，建議改用「加入主畫面」。</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>背包英雄：地牢大冒險 — 玩法手冊</span>
+      <span>依現有原始碼（index.html / items.js / script.js / manifest.json）整理</span>
+    </footer>
+  </main>
+</div>
+
+<script>
+  const ITEMS = [
+    { icon: '⚔️', name: '鐵劍', type: 'weapon', typeLabel: '武器', cost: 1, desc: '基礎武器，使用時造成 7 點傷害。', shape: [[1],[1]] },
+    { icon: '🛡️', name: '木盾', type: 'shield', typeLabel: '防具', cost: 1, desc: '基礎防具，使用時獲得 6 點護盾。', shape: [[1,1],[1,1]] },
+    { icon: '🧪', name: '生命藥水', type: 'potion', typeLabel: '藥水', cost: 1, desc: '恢復 10 點生命值，使用後即消耗、從背包移除。', shape: [[1]] },
+    { icon: '💎', name: '紅寶石', type: 'accessory', typeLabel: '被動配件', cost: 0, desc: '被動效果：使正上方相鄰的武器傷害 +4。', shape: [[1]] },
+    { icon: '🗡️', name: '刺客匕首', type: 'weapon', typeLabel: '武器', cost: 0, desc: '輕型武器，造成 4 點傷害，消耗 0 能量，但每回合限用一次。', shape: [[1]] },
+    { icon: '🥋', name: '板甲', type: 'shield', typeLabel: '防具', cost: 2, desc: '重型防具，使用時獲得 14 點護盾，佔用空間較大。', shape: [[1,1],[1,1],[1,1]] },
+    { icon: '🔪', name: '巨劍', type: 'weapon', typeLabel: '武器', cost: 2, desc: '重型武器，造成 15 點傷害。', shape: [[1],[1],[1]] },
+    { icon: '⚡', name: '雙持短刀', type: 'weapon', typeLabel: '武器', cost: 1, desc: '快速武器，造成 9 點傷害。', shape: [[1,1]] },
+    { icon: '🌵', name: '荊棘護甲', type: 'shield', typeLabel: '防具', cost: 1, desc: '中階防具，獲得 9 點護盾。', shape: [[1,1],[1,1]] },
+    { icon: '🏯', name: '塔盾', type: 'shield', typeLabel: '防具', cost: 2, desc: '超重型防具，獲得 20 點護盾。', shape: [[1,1,1],[1,1,1]] },
+    { icon: '🔷', name: '藍寶石', type: 'accessory', typeLabel: '被動配件', cost: 0, desc: '被動效果：使正上方相鄰的防具護盾 +5。', shape: [[1]] },
+    { icon: '📿', name: '力量護符', type: 'accessory', typeLabel: '被動配件', cost: 0, desc: '被動效果：使正上方相鄰的武器傷害 +6。', shape: [[1]] },
+    { icon: '🧉', name: '活力藥水', type: 'potion', typeLabel: '藥水', cost: 1, desc: '恢復 4 點生命值並回復 1 點能量，使用後消耗。', shape: [[1]] },
+  ];
+
+  const ENEMIES = [
+    { emoji: '🟢', name: '地牢史萊姆', hp: 20, atk: 5, level: 1 },
+    { emoji: '👺', name: '哥布林戰士', hp: 35, atk: 8, level: 2 },
+    { emoji: '💀', name: '骨骸劍士', hp: 50, atk: 12, level: 3 },
+    { emoji: '🐲', name: '地牢領主・黑龍', hp: 90, atk: 16, level: 4 },
+  ];
+
+  const typeColorVar = { weapon: '--weapon', shield: '--shield', potion: '--potion', accessory: '--accessory' };
+
+  function buildShapeSwatch(shape, colorVar, cellPx) {
+    const h = shape.length, w = shape[0].length;
+    const wrap = document.createElement('div');
+    wrap.className = 'shape-swatch';
+    wrap.style.gridTemplateColumns = `repeat(${w}, ${cellPx}px)`;
+    wrap.style.gridTemplateRows = `repeat(${h}, ${cellPx}px)`;
+    for (let r = 0; r < h; r++) {
+      for (let c = 0; c < w; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'shape-cell' + (shape[r][c] ? ' on' : '');
+        if (shape[r][c]) {
+          cell.style.background = `color-mix(in srgb, var(${colorVar}) 30%, transparent)`;
+          cell.style.border = `1.5px solid var(${colorVar})`;
+        }
+        wrap.appendChild(cell);
+      }
+    }
+    return wrap;
+  }
+
+  // Item compendium
+  const itemGrid = document.getElementById('item-grid');
+  ITEMS.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    const colorVar = typeColorVar[item.type];
+
+    const top = document.createElement('div');
+    top.className = 'item-top';
+    top.innerHTML = `
+      <div>
+        <div class="item-icon">${item.icon}</div>
+        <div class="item-name">${item.name}</div>
+      </div>
+    `;
+    const pill = document.createElement('span');
+    pill.className = 'item-type-pill';
+    pill.textContent = item.typeLabel;
+    pill.style.color = `var(${colorVar})`;
+    pill.style.background = `color-mix(in srgb, var(${colorVar}) 16%, transparent)`;
+    top.appendChild(pill);
+
+    const desc = document.createElement('div');
+    desc.className = 'item-desc';
+    desc.textContent = item.desc;
+
+    const foot = document.createElement('div');
+    foot.className = 'item-foot';
+    const dims = document.createElement('span');
+    dims.textContent = `佔用 ${item.shape[0].length}×${item.shape.length}`;
+    const cost = document.createElement('span');
+    cost.innerHTML = `能量消耗 <span class="cost-pip">⚡${item.cost}</span>`;
+    foot.appendChild(dims);
+    foot.appendChild(cost);
+
+    const shapeRow = document.createElement('div');
+    shapeRow.style.display = 'flex';
+    shapeRow.style.justifyContent = 'center';
+    shapeRow.style.padding = '6px 0';
+    shapeRow.appendChild(buildShapeSwatch(item.shape, colorVar, 15));
+
+    card.appendChild(top);
+    card.appendChild(shapeRow);
+    card.appendChild(desc);
+    card.appendChild(foot);
+    itemGrid.appendChild(card);
+  });
+
+  // Bestiary
+  const beastList = document.getElementById('beast-list');
+  const maxHp = Math.max(...ENEMIES.map(e => e.hp));
+  ENEMIES.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'beast';
+    row.innerHTML = `
+      <span class="beast-emoji">${e.emoji}</span>
+      <span>
+        <span class="beast-name">${e.name}</span><br>
+        <span class="beast-stat-label">地牢第 ${e.level} 層</span>
+      </span>
+      <span><span class="beast-stat-label">HP</span><span class="beast-stat-val">${e.hp}</span></span>
+      <span><span class="beast-stat-label">攻擊力</span><span class="beast-stat-val">${e.atk}</span></span>
+      <span class="beast-bar-wrap"><span class="beast-bar" style="display:block; width:${(e.hp / maxHp * 100).toFixed(0)}%;"></span></span>
+    `;
+    beastList.appendChild(row);
+  });
+
+  // Hero mock grid: background cells + a couple placed shapes for flavor
+  const heroGrid = document.getElementById('hero-grid');
+  for (let i = 0; i < 20; i++) {
+    const c = document.createElement('div');
+    c.className = 'mock-cell';
+    heroGrid.appendChild(c);
+  }
+  function placeMock(colStart, rowStart, w, h, colorVar, icon) {
+    const el = document.createElement('div');
+    el.className = 'mock-item';
+    el.style.left = `calc(${colStart} / 5 * 100% + 2px)`;
+    el.style.top = `calc(${rowStart} / 4 * 100% + 2px)`;
+    el.style.width = `calc(${w} / 5 * 100% - 4px)`;
+    el.style.height = `calc(${h} / 4 * 100% - 4px)`;
+    el.style.background = `color-mix(in srgb, var(${colorVar}) 26%, transparent)`;
+    el.style.borderColor = `var(${colorVar})`;
+    el.textContent = icon;
+    heroGrid.appendChild(el);
+  }
+  placeMock(0, 0, 1, 2, '--weapon', '⚔️');
+  placeMock(1, 0, 2, 2, '--shield', '🛡️');
+  placeMock(3, 0, 2, 3, '--shield', '🥋');
+  placeMock(0, 2, 1, 1, '--accessory', '💎');
+  placeMock(1, 2, 1, 1, '--potion', '🧪');
+
+  // Scrollspy for TOC
+  const sections = ['overview','loop','grid','combat','merge','items','bestiary','controls','mobile'].map(id => document.getElementById(id));
+  const links = Array.from(document.querySelectorAll('.toc a'));
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const link = links.find(l => l.getAttribute('href') === '#' + entry.target.id);
+      if (!link) return;
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => s && spy.observe(s));
+</script>
