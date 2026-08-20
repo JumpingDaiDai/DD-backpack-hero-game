@@ -141,6 +141,9 @@ class BackpackGame {
     this.player.block = 0;
     this.player.energy = this.player.maxEnergy;
     this.clearStashSelection();
+    // 重新開始冒險時，清空背包網格（上一輪的裝備不應該留在新的一輪裡）
+    this.placedItems = [];
+    this.grid = Array(this.gridRows).fill(null).map(() => Array(this.gridCols).fill(null));
 
     // 初始贈送裝備進入備用箱
     this.stashItems = [
@@ -926,6 +929,9 @@ class BackpackGame {
       this.spawnEnemy();
       this.player.energy = this.player.maxEnergy;
       this.player.block = 0;
+      // 新的一層開始，解除所有裝備的「本回合已使用」鎖定
+      this.placedItems.forEach(p => { p.usedThisTurn = false; });
+      this.renderPlacedItems();
       this.renderStash();
       this.updateUI();
       this.log(`⚔️ 深入地牢第 ${this.dungeonLevel + 1} 層！遇見了【${this.currentEnemy.name}】！`);
