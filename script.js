@@ -128,25 +128,107 @@ class BackpackGame {
         // 點擊網格放置當前選取的備用裝備
         cell.addEventListener('click', () => this.onGridCellClick(r, c));
 
-        // Drag & Drop 事件
+        // Drag & Drop 事件：整個裝備形狀涵蓋的所有格子同步高亮預覽
         cell.addEventListener('dragover', (e) => {
           e.preventDefault();
-          cell.classList.add('drag-over');
+          if (this.draggedItemObj) {
+            const itemObj = this.draggedItemObj.obj;
+            this.highlightGridCells(r, c, itemObj.shape, itemObj);
+          }
         });
 
         cell.addEventListener('dragleave', () => {
-          cell.classList.remove('drag-over');
+          this.clearGridHighlights();
         });
 
         cell.addEventListener('drop', (e) => {
           e.preventDefault();
-          cell.classList.remove('drag-over');
+          this.clearGridHighlights();
           this.handleDropOnCell(r, c);
         });
 
         this.backpackGridEl.appendChild(cell);
       }
     }
+  }
+
+  // 高亮涵蓋的所有網格 (合法為 drag-over 藍光，衝突/超出為 invalid-over 紅光)
+  highlightGridCells(startR, startC, shape, draggedItem) {
+    this.clearGridHighlights();
+
+    // 若拖曳的是已放置物品，預覽時暫時無視它原先佔用的格子
+    if (this.draggedItemObj && this.draggedItemObj.source === 'placed') {
+      this.clearGridForPlacedItem(draggedItem);
+    }
+
+    const isValid = this.canPlaceItem(shape, startR, startC);
+    const h = shape.length;
+    const w = shape[0].length;
+
+    for (let r = 0; r < h; r++) {
+      for (let c = 0; c < w; c++) {
+        if (shape[r][c] === 1) {
+          const targetR = startR + r;
+          const targetC = startC + c;
+          if (targetR < this.gridRows && targetC < this.gridCols) {
+            const cell = this.backpackGridEl.querySelector(`.grid-cell[data-r="${targetR}"][data-c="${targetC}"]`);
+            if (cell) {
+              cell.classList.add(isValid ? 'drag-over' : 'invalid-over');
+            }
+          }
+        }
+      }
+    }
+
+    // 復原已放置物品的網格佔用
+    if (this.draggedItemObj && this.draggedItemObj.source === 'placed') {
+      this.fillGridForPlacedItem(draggedItem);
+    }
+  }
+
+  clearGridHighlights() {
+    const cells = this.backpackGridEl.querySelectorAll('.grid-cell');
+    cells.forEach(cell => {
+      cell.classList.remove('drag-over', 'invalid-over');
+    });
+  }
+
+  // 建立與裝備實際尺寸、形狀與 Icon 完全一致的動態 DragImage 縮圖
+  createCustomDragImage(e, itemObj) {
+    const shape = itemObj.shape;
+    const cellWidth = 60;
+    const cellHeight = 60;
+    const gap = 6;
+    const w = shape[0].length;
+    const h = shape.length;
+
+    const dragImg = document.createElement('div');
+    dragImg.style.position = 'absolute';
+    dragImg.style.top = '-9999px';
+    dragImg.style.left = '-9999px';
+    dragImg.style.width = `${w * cellWidth + (w - 1) * gap}px`;
+    dragImg.style.height = `${h * cellHeight + (h - 1) * gap}px`;
+    dragImg.style.background = 'linear-gradient(135deg, #374151, #1f2937)';
+    dragImg.style.border = '2px solid #f59e0b';
+    dragImg.style.borderRadius = '8px';
+    dragImg.style.display = 'flex';
+    dragImg.style.flexDirection = 'column';
+    dragImg.style.alignItems = 'center';
+    dragImg.style.justifyContent = 'center';
+    dragImg.style.boxShadow = '0 8px 16px rgba(0,0,0,0.5)';
+    dragImg.style.opacity = '0.9';
+
+    dragImg.innerHTML = `
+      <span style="font-size: 1.4rem;">${itemObj.item.icon}</span>
+      <span style="font-size: 0.7rem; color: #f59e0b; font-weight:700;">${itemObj.item.name}</span>
+    `;
+
+    document.body.appendChild(dragImg);
+    e.dataTransfer.setDragImage(dragImg, cellWidth / 2, cellHeight / 2);
+
+    setTimeout(() => {
+      document.body.removeChild(dragImg);
+    }, 0);
   }
 
   renderStash() {
@@ -177,16 +259,18 @@ class BackpackGame {
         this.renderStash();
       });
 
-      // 拖曳事件監聽
+      // 拖曳事件監聽 (搭配自訂形狀 DragImage 縮圖)
       card.addEventListener('dragstart', (e) => {
         this.selectedStashItem = st;
         this.draggedItemObj = { source: 'stash', obj: st };
         card.classList.add('dragging');
+        this.createCustomDragImage(e, st);
         e.dataTransfer.setData('text/plain', st.instanceId);
       });
 
       card.addEventListener('dragend', () => {
         card.classList.remove('dragging');
+        this.clearGridHighlights();
       });
 
       this.stashContainerEl.appendChild(card);
@@ -236,11 +320,13 @@ class BackpackGame {
         this.selectedStashItem = null;
         this.draggedItemObj = { source: 'placed', obj: pi };
         el.style.opacity = '0.5';
+        this.createCustomDragImage(e, pi);
         e.dataTransfer.setData('text/plain', pi.instanceId);
       });
 
       el.addEventListener('dragend', () => {
         el.style.opacity = '1';
+        this.clearGridHighlights();
       });
 
       this.backpackGridEl.appendChild(el);
