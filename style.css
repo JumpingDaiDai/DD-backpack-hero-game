@@ -1,0 +1,406 @@
+:root {
+  --bg-dark: #121316;
+  --panel-bg: #1c1e24;
+  --panel-border: #343844;
+  --accent-gold: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-green: #10b981;
+  --accent-blue: #3b82f6;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --cell-bg: #272a33;
+  --cell-hover: #373c4a;
+  --cell-occupied: #1e293b;
+  --font-title: 'Cinzel', serif;
+  --font-body: 'Noto Sans TC', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.game-container {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 標題 */
+.header {
+  text-align: center;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--panel-border);
+}
+
+.game-title {
+  font-family: var(--font-title);
+  font-size: 2.2rem;
+  color: var(--accent-gold);
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.game-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* 戰鬥區域 */
+.combat-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.character-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 42%;
+}
+
+.avatar {
+  font-size: 2.5rem;
+  background: #2a2d37;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #404656;
+}
+
+.char-info {
+  flex: 1;
+}
+
+.char-name {
+  font-weight: 900;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.hp-bar-wrapper {
+  position: relative;
+  height: 18px;
+  background-color: #374151;
+  border-radius: 9px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.hp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  transition: width 0.3s ease;
+}
+
+.enemy-hp {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.hp-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-size: 0.75rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.block-indicator, .intent-indicator {
+  font-size: 0.8rem;
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+
+.vs-badge {
+  font-family: var(--font-title);
+  font-size: 1.4rem;
+  color: var(--accent-red);
+  font-weight: 900;
+}
+
+/* 控制區域 */
+.control-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--panel-bg);
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+}
+
+.energy-box {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.energy-value {
+  color: var(--accent-gold);
+  font-size: 1.3rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  background-color: #374151;
+  color: var(--text-main);
+  border: 1px solid #4b5563;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background-color: #4b5563;
+}
+
+.btn-rotate {
+  background-color: #2563eb;
+  border-color: #3b82f6;
+}
+.btn-rotate:hover { background-color: #1d4ed8; }
+
+.btn-end-turn {
+  background-color: #d97706;
+  border-color: #f59e0b;
+}
+.btn-end-turn:hover { background-color: #b45309; }
+
+/* 背包遊戲主區 */
+.backpack-game-area {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 14px;
+}
+
+.section-box {
+  background-color: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.section-box h3 {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* 網格系統 (5 欄 x 4 列) */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(5, 60px);
+  grid-template-rows: repeat(4, 60px);
+  gap: 6px;
+  justify-content: center;
+  position: relative;
+  background: #16181d;
+  padding: 10px;
+  border-radius: 12px;
+  border: 2px dashed #374151;
+}
+
+.grid-cell {
+  background-color: var(--cell-bg);
+  border-radius: 8px;
+  border: 1px solid #333846;
+  transition: background-color 0.2s;
+}
+
+.grid-cell.drag-over {
+  background-color: #1e3a8a;
+  border-color: #60a5fa;
+}
+
+.grid-cell.invalid-over {
+  background-color: #7f1d1d;
+  border-color: #f87171;
+}
+
+/* 物資箱 */
+.stash-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 264px;
+  background: #16181d;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #2d323f;
+  overflow-y: auto;
+  max-height: 280px;
+}
+
+/* 裝備卡片 / 實體項目 */
+.item-card {
+  background: linear-gradient(135deg, #2d323f, #1e222b);
+  border: 1px solid #4b5563;
+  border-radius: 10px;
+  padding: 8px;
+  cursor: grab;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.item-card:active {
+  cursor: grabbing;
+}
+
+.item-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-gold);
+}
+
+.item-icon {
+  font-size: 1.8rem;
+}
+
+.item-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.item-desc {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.item-cost {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: var(--accent-blue);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 900;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 放置於網格內的裝備 */
+.placed-item {
+  position: absolute;
+  background: linear-gradient(135deg, #374151, #1f2937);
+  border: 2px solid var(--accent-gold);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+
+.placed-item:hover {
+  filter: brightness(1.2);
+}
+
+/* 訊息日誌區 */
+.log-panel {
+  background-color: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 10px 16px;
+  text-align: center;
+}
+
+.log-message {
+  font-size: 0.88rem;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+/* Modal 彈窗 */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal-content {
+  background-color: var(--panel-bg);
+  border: 2px solid var(--accent-gold);
+  border-radius: 20px;
+  padding: 24px;
+  text-align: center;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.2);
+}
+
+.modal-emoji { font-size: 3rem; margin-bottom: 8px; }
+
+.modal-content h2 { color: var(--accent-gold); font-size: 1.6rem; margin-bottom: 6px; }
+
+.modal-content p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px; }
+
+.loot-display { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
+.btn-primary {
+  background-color: var(--accent-gold);
+  color: #111;
+  font-weight: 900;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .backpack-game-area { grid-template-columns: 1fr; }
+  .grid-container { grid-template-columns: repeat(5, 50px); grid-template-rows: repeat(4, 50px); }
+}

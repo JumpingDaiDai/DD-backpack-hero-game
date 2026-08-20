@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>背包英雄：地牢大冒險 ⚔️🎒</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="game-container">
+    <!-- 頂部標題區 -->
+    <header class="header">
+      <h1 class="game-title">BACKPACK HERO</h1>
+      <span class="game-subtitle">🎒 背包英雄：地牢大冒險 ⚔️</span>
+    </header>
+
+    <!-- 戰鬥區域 -->
+    <section class="combat-section">
+      <!-- 玩家狀態 -->
+      <div class="character-card player-card">
+        <div class="avatar">🧙‍♂️</div>
+        <div class="char-info">
+          <div class="char-name">勇者</div>
+          <div class="hp-bar-wrapper">
+            <div class="hp-bar" id="player-hp-bar" style="width: 100%;"></div>
+            <span class="hp-text" id="player-hp-text">50 / 50</span>
+          </div>
+          <div class="block-indicator" id="player-block">🛡️ 護盾: 0</div>
+        </div>
+      </div>
+
+      <div class="vs-badge">VS</div>
+
+      <!-- 敵人狀態 -->
+      <div class="character-card enemy-card">
+        <div class="avatar" id="enemy-avatar">🟢</div>
+        <div class="char-info">
+          <div class="char-name" id="enemy-name">地牢史萊姆</div>
+          <div class="hp-bar-wrapper">
+            <div class="hp-bar enemy-hp" id="enemy-hp-bar" style="width: 100%;"></div>
+            <span class="hp-text" id="enemy-hp-text">20 / 20</span>
+          </div>
+          <div class="intent-indicator" id="enemy-intent">⚔️ 準備攻擊 5 點</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 控制面板與能量區 -->
+    <section class="control-panel">
+      <div class="energy-box">
+        <span>⚡ 能量: </span>
+        <span id="energy-display" class="energy-value">3 / 3</span>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-rotate" id="rotate-btn">旋轉物品 🔄 (R)</button>
+        <button class="btn btn-end-turn" id="end-turn-btn">結束回合 ⏳</button>
+      </div>
+    </section>
+
+    <!-- 主要遊戲區域 (背包 + 待整理備用區) -->
+    <main class="backpack-game-area">
+      <!-- 背包網格區域 -->
+      <div class="section-box backpack-section">
+        <h3>🎒 我的冒險背包 (拖曳擺放 / 點擊使用)</h3>
+        <div class="grid-container" id="backpack-grid">
+          <!-- 5x4 動態網格將由 JS 渲染 -->
+        </div>
+      </div>
+
+      <!-- 待整理物資區 -->
+      <div class="section-box stash-section">
+        <h3>📦 待整理物資箱</h3>
+        <div class="stash-container" id="stash-container">
+          <!-- 戰利品或未放入背包的裝備 -->
+        </div>
+      </div>
+    </main>
+
+    <!-- 提示與訊息欄 -->
+    <footer class="log-panel">
+      <div class="log-message" id="game-log">歡迎來到地牢！將備用箱的裝備拖入背包，並發動攻擊吧！</div>
+    </footer>
+  </div>
+
+  <!-- 戰利品 / 獲勝結算 Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-emoji" id="modal-emoji">🏆</div>
+      <h2 id="modal-title">戰鬥勝利！</h2>
+      <p id="modal-body">你擊敗了敵人，獲得了新的裝備戰利品！</p>
+      <div class="loot-display" id="loot-display"></div>
+      <button class="btn btn-primary" id="modal-next-btn">前往下一層地牢 ⚔️</button>
+    </div>
+  </div>
+
+  <script src="items.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
