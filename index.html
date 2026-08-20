@@ -55,10 +55,10 @@
           <div class="intent-indicator" id="enemy-intent">⚔️ 準備攻擊 5 點</div>
         </div>
       </div>
-    </section>
 
-    <!-- 選取裝備詳情：點擊底部物資箱的 icon 後，形狀／名稱／描述顯示在這裡 -->
-    <section class="item-detail-bar" id="item-detail-bar"></section>
+      <!-- 選取裝備詳情：點擊底部物資箱的 icon 後，浮動疊在角色區塊上方顯示形狀／名稱／描述 -->
+      <div class="item-detail-bar" id="item-detail-bar"></div>
+    </section>
 
     <!-- 控制面板與能量區 -->
     <section class="control-panel">
@@ -93,6 +93,11 @@
         <!-- 戰利品或未放入背包的裝備 -->
       </div>
     </section>
+  </div>
+
+  <!-- 回合切換提示：畫面中央短暫顯示後自動消失 -->
+  <div class="turn-toast-overlay" id="turn-toast">
+    <div class="turn-toast-box" id="turn-toast-text"></div>
   </div>
 
   <!-- 戰利品 / 獲勝結算 Modal -->

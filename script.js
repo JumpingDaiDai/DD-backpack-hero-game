@@ -46,6 +46,8 @@ class BackpackGame {
     this.gameLogEl = document.getElementById('game-log');
     this.modalOverlayEl = document.getElementById('modal-overlay');
     this.itemDetailBarEl = document.getElementById('item-detail-bar');
+    this.turnToastEl = document.getElementById('turn-toast');
+    this.turnToastTextEl = document.getElementById('turn-toast-text');
 
     // 綁定按鈕事件
     document.getElementById('rotate-btn').addEventListener('click', () => this.rotateSelected());
@@ -112,6 +114,17 @@ class BackpackGame {
     }).catch(() => {
       this.log('無法進入全螢幕，請改用「加入主畫面」以全螢幕模式啟動！');
     });
+  }
+
+  // 畫面中央顯示回合切換提示，1 秒後自動淡出消失
+  showTurnToast(text) {
+    if (!this.turnToastEl) return;
+    this.turnToastTextEl.textContent = text;
+    this.turnToastEl.classList.add('show');
+    clearTimeout(this.turnToastTimer);
+    this.turnToastTimer = setTimeout(() => {
+      this.turnToastEl.classList.remove('show');
+    }, 1000);
   }
 
   updateFullscreenBtn() {
@@ -728,6 +741,12 @@ class BackpackGame {
 
     if (this.currentEnemy.hp <= 0) {
       this.handleVictory();
+      return;
+    }
+
+    // 能量用盡時直接自動結束回合，不用等玩家按按鈕
+    if (this.player.energy <= 0) {
+      this.endTurn();
     }
   }
 
@@ -750,6 +769,7 @@ class BackpackGame {
   }
 
   endTurn() {
+    this.showTurnToast('⏳ 回合結束');
     this.log(`⏳ 回合結束！輪到【${this.currentEnemy.name}】行動！`);
 
     let attack = this.currentEnemy.attack;

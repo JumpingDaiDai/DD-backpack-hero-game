@@ -104,6 +104,7 @@ body {
 
 /* 戰鬥區域 */
 .combat-section {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -192,16 +193,19 @@ body {
   padding: 0 4px;
 }
 
-/* 裝備詳情條：點擊底部物資箱 icon 後，顯示形狀／名稱／描述 */
+/* 裝備詳情條：點擊底部物資箱 icon 後，浮動疊在角色區塊「上方」，不佔版面空間、不推擠其他區塊 */
 .item-detail-bar {
   display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
   align-items: center;
   gap: clamp(10px, 2dvh, 16px);
   background-color: var(--panel-bg);
   border: 1px solid var(--accent-gold);
-  border-radius: 14px;
-  padding: clamp(7px, 1.5dvh, 14px) clamp(10px, 2dvh, 16px);
-  flex-shrink: 0;
+  border-radius: 16px;
+  padding: clamp(6px, 1.6dvh, 16px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.6);
 }
 
 .item-detail-bar.show {
@@ -266,6 +270,37 @@ body {
   color: var(--accent-blue);
   font-size: clamp(0.74rem, 1.8dvh, 0.95rem);
   white-space: nowrap;
+}
+
+/* 回合切換提示：畫面中央短暫顯示後自動淡出 */
+.turn-toast-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.turn-toast-overlay.show {
+  opacity: 1;
+}
+
+.turn-toast-box {
+  background: rgba(18, 19, 22, 0.92);
+  border: 2px solid var(--accent-gold);
+  color: var(--accent-gold);
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: clamp(1.1rem, 4.5dvh, 1.9rem);
+  letter-spacing: 3px;
+  padding: clamp(10px, 2.2dvh, 20px) clamp(24px, 5dvh, 40px);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+  text-align: center;
 }
 
 /* 控制區域 */
