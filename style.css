@@ -13,6 +13,7 @@
   --cell-occupied: #1e293b;
   --font-title: 'Cinzel', serif;
   --font-body: 'Noto Sans TC', sans-serif;
+  --game-gap: clamp(6px, 1.6dvh, 14px);
 }
 
 * {
@@ -23,42 +24,54 @@
   -webkit-user-select: none;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   background-color: var(--bg-dark);
   color: var(--text-main);
   font-family: var(--font-body);
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  padding: 16px;
+  align-items: center;
+  height: 100vh;
+  height: 100dvh;
+  padding: clamp(6px, 2vh, 16px);
 }
 
 .game-container {
   width: 100%;
   max-width: 680px;
+  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--game-gap);
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* 標題 */
 .header {
   text-align: center;
-  padding-bottom: 6px;
+  padding-bottom: clamp(2px, 0.8dvh, 6px);
   border-bottom: 2px solid var(--panel-border);
+  flex-shrink: 0;
 }
 
 .game-title {
   font-family: var(--font-title);
-  font-size: 2.2rem;
+  font-size: clamp(1.2rem, 4dvh, 2.2rem);
   color: var(--accent-gold);
   letter-spacing: 2px;
   text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
 }
 
 .game-subtitle {
-  font-size: 0.95rem;
+  font-size: clamp(0.7rem, 2dvh, 0.95rem);
   color: var(--text-muted);
   font-weight: 700;
 }
@@ -71,8 +84,9 @@ body {
   background-color: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
-  padding: 16px;
+  padding: clamp(6px, 1.6dvh, 16px);
   box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  flex-shrink: 0;
 }
 
 .character-card {
@@ -83,26 +97,27 @@ body {
 }
 
 .avatar {
-  font-size: 2.5rem;
+  font-size: clamp(1.4rem, 4dvh, 2.5rem);
   background: #2a2d37;
-  padding: 8px;
+  padding: clamp(3px, 1dvh, 8px);
   border-radius: 12px;
   border: 1px solid #404656;
 }
 
 .char-info {
   flex: 1;
+  min-width: 0;
 }
 
 .char-name {
   font-weight: 900;
-  font-size: 1rem;
+  font-size: clamp(0.75rem, 2.2dvh, 1rem);
   margin-bottom: 4px;
 }
 
 .hp-bar-wrapper {
   position: relative;
-  height: 18px;
+  height: clamp(12px, 2.4dvh, 18px);
   background-color: #374151;
   border-radius: 9px;
   overflow: hidden;
@@ -125,7 +140,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  font-size: 0.75rem;
+  font-size: clamp(0.62rem, 1.6dvh, 0.75rem);
   font-weight: 900;
   display: flex;
   align-items: center;
@@ -134,16 +149,21 @@ body {
 }
 
 .block-indicator, .intent-indicator {
-  font-size: 0.8rem;
+  font-size: clamp(0.68rem, 1.7dvh, 0.8rem);
   color: var(--accent-gold);
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vs-badge {
   font-family: var(--font-title);
-  font-size: 1.4rem;
+  font-size: clamp(1rem, 3dvh, 1.4rem);
   color: var(--accent-red);
   font-weight: 900;
+  flex-shrink: 0;
+  padding: 0 4px;
 }
 
 /* 控制區域 */
@@ -152,19 +172,20 @@ body {
   justify-content: space-between;
   align-items: center;
   background-color: var(--panel-bg);
-  padding: 12px 18px;
+  padding: clamp(6px, 1.4dvh, 12px) clamp(10px, 2dvh, 18px);
   border-radius: 14px;
   border: 1px solid var(--panel-border);
+  flex-shrink: 0;
 }
 
 .energy-box {
-  font-size: 1.1rem;
+  font-size: clamp(0.85rem, 2.2dvh, 1.1rem);
   font-weight: 900;
 }
 
 .energy-value {
   color: var(--accent-gold);
-  font-size: 1.3rem;
+  font-size: clamp(1rem, 2.6dvh, 1.3rem);
 }
 
 .action-buttons {
@@ -176,12 +197,14 @@ body {
   background-color: #374151;
   color: var(--text-main);
   border: 1px solid #4b5563;
-  padding: 8px 16px;
+  padding: clamp(5px, 1.4dvh, 8px) clamp(8px, 2vw, 16px);
   border-radius: 10px;
   font-weight: 700;
   font-family: inherit;
+  font-size: clamp(0.72rem, 1.8dvh, 1rem);
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn:hover {
@@ -203,35 +226,49 @@ body {
 /* 背包遊戲主區 */
 .backpack-game-area {
   display: grid;
-  grid-template-columns: 1fr 200px;
-  gap: 14px;
+  grid-template-columns: 1fr clamp(84px, 24vw, 200px);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--game-gap);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .section-box {
   background-color: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
-  padding: 14px;
+  padding: clamp(6px, 1.6dvh, 14px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .section-box h3 {
-  font-size: 0.95rem;
+  font-size: clamp(0.65rem, 1.8dvh, 0.95rem);
   color: var(--text-muted);
-  margin-bottom: 12px;
+  margin-bottom: clamp(4px, 1.2dvh, 12px);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* 網格系統 (5 欄 x 4 列) */
+/* 網格系統 (5 欄 x 4 列)：用 fr 撐滿可用空間，格子大小完全交給實際佈局決定，避免和欄寬打架溢出 */
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(5, 60px);
-  grid-template-rows: repeat(4, 60px);
-  gap: 6px;
-  justify-content: center;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: clamp(3px, 0.8dvh, 6px);
   position: relative;
   background: #16181d;
-  padding: 10px;
+  padding: clamp(4px, 1dvh, 10px);
   border-radius: 12px;
   border: 2px dashed #374151;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .grid-cell {
@@ -255,14 +292,14 @@ body {
 .stash-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 264px;
+  gap: clamp(4px, 1dvh, 8px);
+  flex: 1;
+  min-height: 0;
   background: #16181d;
-  padding: 10px;
+  padding: clamp(5px, 1.2dvh, 10px);
   border-radius: 12px;
   border: 1px solid #2d323f;
   overflow-y: auto;
-  max-height: 280px;
 }
 
 /* 裝備卡片 / 實體項目 */
@@ -270,18 +307,24 @@ body {
   background: linear-gradient(135deg, #2d323f, #1e222b);
   border: 1px solid #4b5563;
   border-radius: 10px;
-  padding: 8px;
+  padding: clamp(4px, 1dvh, 8px);
   cursor: grab;
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(4px, 1dvh, 8px);
   box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   transition: transform 0.1s, box-shadow 0.2s;
+  flex-shrink: 0;
+  touch-action: none;
 }
 
 .item-card:active {
   cursor: grabbing;
+}
+
+.item-card.dragging {
+  opacity: 0.5;
 }
 
 .item-card:hover {
@@ -290,24 +333,33 @@ body {
 }
 
 .item-icon {
-  font-size: 1.8rem;
+  font-size: clamp(1.1rem, 3dvh, 1.8rem);
+  flex-shrink: 0;
 }
 
 .item-details {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .item-title {
-  font-size: 0.85rem;
+  font-size: clamp(0.66rem, 1.7dvh, 0.85rem);
   font-weight: 700;
   color: var(--accent-gold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .item-desc {
-  font-size: 0.7rem;
+  font-size: clamp(0.58rem, 1.5dvh, 0.7rem);
   color: var(--text-muted);
   line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .item-cost {
@@ -339,10 +391,31 @@ body {
   cursor: pointer;
   z-index: 10;
   box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  touch-action: none;
 }
 
 .placed-item:hover {
   filter: brightness(1.2);
+}
+
+.placed-item.dragging {
+  opacity: 0.5;
+}
+
+/* 手機觸控拖曳時跟隨手指的縮圖，外觀對應桌面版 setDragImage 縮圖 */
+.touch-ghost {
+  position: fixed;
+  z-index: 999;
+  pointer-events: none;
+  background: linear-gradient(135deg, #374151, #1f2937);
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+  opacity: 0.9;
 }
 
 /* 訊息日誌區 */
@@ -350,14 +423,19 @@ body {
   background-color: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
-  padding: 10px 16px;
+  padding: clamp(5px, 1.2dvh, 10px) clamp(8px, 2vw, 16px);
   text-align: center;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
 .log-message {
-  font-size: 0.88rem;
+  font-size: clamp(0.68rem, 1.7dvh, 0.88rem);
   color: var(--text-main);
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Modal 彈窗 */
@@ -400,7 +478,15 @@ body {
   width: 100%;
 }
 
-@media (max-width: 600px) {
-  .backpack-game-area { grid-template-columns: 1fr; }
-  .grid-container { grid-template-columns: repeat(5, 50px); grid-template-rows: repeat(4, 50px); }
+/* 窄螢幕：物資箱欄位縮到只顯示 icon + 名稱，讓背包網格保留最大空間 */
+@media (max-width: 420px) {
+  .stash-section .item-desc { display: none; }
+  .stash-section .item-cost { width: 15px; height: 15px; font-size: 0.6rem; }
+  .character-card { gap: 6px; }
+}
+
+/* 極短螢幕（如橫向手機）：字級與間距再進一步收斂 */
+@media (max-height: 480px) {
+  :root { --game-gap: 4px; }
+  .char-name { display: none; }
 }

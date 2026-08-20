@@ -25,6 +25,7 @@ class BackpackGame {
     // 當前選取/拖曳/旋轉暫存
     this.selectedStashItem = null;
     this.draggedItemObj = null; // 當前正在拖曳的物件 { source: 'stash'|'placed', obj }
+    this.touchState = null; // 手機觸控拖曳的暫存狀態
 
     this.initDOM();
     this.initGame();
@@ -64,16 +65,7 @@ class BackpackGame {
       e.preventDefault();
       this.stashContainerEl.classList.remove('drag-over');
       if (this.draggedItemObj && this.draggedItemObj.source === 'placed') {
-        const pi = this.draggedItemObj.obj;
-        this.removePlacedItem(pi);
-        this.stashItems.push({
-          instanceId: pi.instanceId,
-          item: pi.item,
-          shape: pi.shape
-        });
-        this.renderStash();
-        this.renderPlacedItems();
-        this.log(`將【${pi.item.name}】移回了備用箱！`);
+        this.returnPlacedItemToStash(this.draggedItemObj.obj);
         this.draggedItemObj = null;
       }
     });
@@ -193,12 +185,150 @@ class BackpackGame {
     });
   }
 
+  // 讀取實際渲染出的網格尺寸（隨 --cell-size 響應式變化），確保縮圖與定位永遠對齊
+  getCellMetrics() {
+    const sampleCell = this.backpackGridEl.querySelector('.grid-cell');
+    if (!sampleCell) return { cellWidth: 60, cellHeight: 60, gap: 6 };
+    const rect = sampleCell.getBoundingClientRect();
+    const gap = parseFloat(getComputedStyle(this.backpackGridEl).columnGap) || 0;
+    return { cellWidth: rect.width, cellHeight: rect.height, gap };
+  }
+
+  // 依觸控座標推算對應的背包格子（不用 elementFromPoint，避免被已放置裝備的浮層擋住判斷）
+  cellFromPoint(clientX, clientY) {
+    const rect = this.backpackGridEl.getBoundingClientRect();
+    const style = getComputedStyle(this.backpackGridEl);
+    const { cellWidth, cellHeight, gap } = this.getCellMetrics();
+    const x = clientX - rect.left - (parseFloat(style.paddingLeft) || 0);
+    const y = clientY - rect.top - (parseFloat(style.paddingTop) || 0);
+    if (x < 0 || y < 0) return null;
+    const c = Math.floor(x / (cellWidth + gap));
+    const r = Math.floor(y / (cellHeight + gap));
+    if (r < 0 || r >= this.gridRows || c < 0 || c >= this.gridCols) return null;
+    return { r, c };
+  }
+
+  isPointInStash(clientX, clientY) {
+    const rect = this.stashContainerEl.getBoundingClientRect();
+    return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+  }
+
+  returnPlacedItemToStash(pi) {
+    this.removePlacedItem(pi);
+    this.stashItems.push({ instanceId: pi.instanceId, item: pi.item, shape: pi.shape });
+    this.renderStash();
+    this.renderPlacedItems();
+    this.log(`將【${pi.item.name}】移回了備用箱！`);
+  }
+
+  // 建立跟隨手指移動的觸控拖曳縮圖（與滑鼠版 DragImage 外觀一致）
+  createTouchGhost(itemObj) {
+    const { cellWidth, cellHeight, gap } = this.getCellMetrics();
+    const shape = itemObj.shape;
+    const w = shape[0].length;
+    const h = shape.length;
+
+    const ghost = document.createElement('div');
+    ghost.className = 'touch-ghost';
+    ghost.style.width = `${w * cellWidth + (w - 1) * gap}px`;
+    ghost.style.height = `${h * cellHeight + (h - 1) * gap}px`;
+    ghost.innerHTML = `
+      <span style="font-size: 1.4rem;">${itemObj.item.icon}</span>
+      <span style="font-size: 0.7rem; color: #f59e0b; font-weight:700;">${itemObj.item.name}</span>
+    `;
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+
+  updateTouchGhostPosition(ghost, clientX, clientY) {
+    const w = ghost.offsetWidth;
+    const h = ghost.offsetHeight;
+    ghost.style.left = `${clientX - w / 2}px`;
+    ghost.style.top = `${clientY - h / 2 - 46}px`; // 往上偏移，避免手指擋住縮圖
+  }
+
+  // 觸控版拖曳：先記錄起點，移動超過門檻才視為「拖曳」，讓單純點擊仍能正常觸發原生 click
+  onTouchStart(e, source, obj, el) {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    this.touchState = {
+      source, obj, el,
+      startX: t.clientX, startY: t.clientY,
+      dragging: false,
+      ghost: null,
+      hoverCell: null
+    };
+  }
+
+  onTouchMove(e) {
+    const state = this.touchState;
+    if (!state) return;
+    const t = e.touches[0];
+    const dx = t.clientX - state.startX;
+    const dy = t.clientY - state.startY;
+
+    if (!state.dragging) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      state.dragging = true;
+      this.draggedItemObj = { source: state.source, obj: state.obj };
+      if (state.source === 'stash') this.selectedStashItem = state.obj;
+      state.ghost = this.createTouchGhost(state.obj);
+      state.el.classList.add('dragging');
+    }
+
+    e.preventDefault();
+    this.updateTouchGhostPosition(state.ghost, t.clientX, t.clientY);
+
+    const cell = this.cellFromPoint(t.clientX, t.clientY);
+    if (cell) {
+      state.hoverCell = cell;
+      this.stashContainerEl.classList.remove('drag-over');
+      this.highlightGridCells(cell.r, cell.c, state.obj.shape, state.obj);
+    } else {
+      state.hoverCell = null;
+      this.clearGridHighlights();
+      this.stashContainerEl.classList.toggle('drag-over', this.isPointInStash(t.clientX, t.clientY));
+    }
+  }
+
+  onTouchEnd(e) {
+    const state = this.touchState;
+    if (!state) return;
+    this.touchState = null;
+    if (!state.dragging) return; // 單純點擊，交給原生 click 事件處理
+
+    e.preventDefault();
+    if (state.ghost) state.ghost.remove();
+    state.el.classList.remove('dragging');
+    this.clearGridHighlights();
+    this.stashContainerEl.classList.remove('drag-over');
+
+    if (state.hoverCell) {
+      this.handleDropOnCell(state.hoverCell.r, state.hoverCell.c);
+    } else {
+      const t = e.changedTouches[0];
+      if (state.source === 'placed' && this.isPointInStash(t.clientX, t.clientY)) {
+        this.returnPlacedItemToStash(state.obj);
+      }
+      this.draggedItemObj = null;
+    }
+  }
+
+  onTouchCancel() {
+    const state = this.touchState;
+    this.touchState = null;
+    if (!state || !state.dragging) return;
+    if (state.ghost) state.ghost.remove();
+    state.el.classList.remove('dragging');
+    this.clearGridHighlights();
+    this.stashContainerEl.classList.remove('drag-over');
+    this.draggedItemObj = null;
+  }
+
   // 建立與裝備實際尺寸、形狀與 Icon 完全一致的動態 DragImage 縮圖
   createCustomDragImage(e, itemObj) {
     const shape = itemObj.shape;
-    const cellWidth = 60;
-    const cellHeight = 60;
-    const gap = 6;
+    const { cellWidth, cellHeight, gap } = this.getCellMetrics();
     const w = shape[0].length;
     const h = shape.length;
 
@@ -273,6 +403,12 @@ class BackpackGame {
         this.clearGridHighlights();
       });
 
+      // 手機觸控拖曳
+      card.addEventListener('touchstart', (e) => this.onTouchStart(e, 'stash', st, card), { passive: true });
+      card.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+      card.addEventListener('touchend', (e) => this.onTouchEnd(e), { passive: false });
+      card.addEventListener('touchcancel', () => this.onTouchCancel(), { passive: true });
+
       this.stashContainerEl.appendChild(card);
     });
   }
@@ -282,9 +418,7 @@ class BackpackGame {
     const existing = this.backpackGridEl.querySelectorAll('.placed-item');
     existing.forEach(el => el.remove());
 
-    const cellWidth = 60;
-    const cellHeight = 60;
-    const gap = 6;
+    const { cellWidth, cellHeight, gap } = this.getCellMetrics();
 
     this.placedItems.forEach((pi) => {
       const el = document.createElement('div');
@@ -328,6 +462,12 @@ class BackpackGame {
         el.style.opacity = '1';
         this.clearGridHighlights();
       });
+
+      // 手機觸控拖曳
+      el.addEventListener('touchstart', (e) => this.onTouchStart(e, 'placed', pi, el), { passive: true });
+      el.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+      el.addEventListener('touchend', (e) => this.onTouchEnd(e), { passive: false });
+      el.addEventListener('touchcancel', () => this.onTouchCancel(), { passive: true });
 
       this.backpackGridEl.appendChild(el);
     });
