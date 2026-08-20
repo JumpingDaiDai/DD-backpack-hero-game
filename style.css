@@ -254,6 +254,12 @@ body {
   font-size: clamp(0.62rem, 1.5dvh, 0.78rem);
 }
 
+.item-detail-star {
+  color: var(--accent-gold);
+  font-size: clamp(0.68rem, 1.7dvh, 0.85rem);
+  letter-spacing: -1px;
+}
+
 .item-detail-desc {
   display: block;
   font-size: clamp(0.66rem, 1.6dvh, 0.85rem);
@@ -515,6 +521,25 @@ body {
   pointer-events: none;
 }
 
+.stash-icon-star {
+  position: absolute;
+  bottom: -6px;
+  left: -6px;
+  background-color: var(--accent-gold);
+  color: #111;
+  font-size: 0.6rem;
+  font-weight: 900;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 /* 裝備卡片 / 實體項目 */
 .item-card {
   background: linear-gradient(135deg, #2d323f, #1e222b);
@@ -613,6 +638,25 @@ body {
 
 .placed-item.dragging {
   opacity: 0.5;
+}
+
+.placed-item.used {
+  opacity: 0.4;
+  filter: grayscale(70%);
+  cursor: not-allowed;
+}
+
+.placed-item-star {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  background-color: var(--accent-gold);
+  color: #111;
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 8px;
+  white-space: nowrap;
 }
 
 /* 手機觸控拖曳時跟隨手指的縮圖，外觀對應桌面版 setDragImage 縮圖 */

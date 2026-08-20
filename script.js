@@ -26,6 +26,7 @@ class BackpackGame {
     this.selectedStashItem = null;
     this.draggedItemObj = null; // 當前正在拖曳的物件 { source: 'stash'|'placed', obj }
     this.touchState = null; // 手機觸控拖曳的暫存狀態
+    this.maxStar = 3; // 合成升星上限
 
     this.initDOM();
     this.initGame();
@@ -124,7 +125,7 @@ class BackpackGame {
     clearTimeout(this.turnToastTimer);
     this.turnToastTimer = setTimeout(() => {
       this.turnToastEl.classList.remove('show');
-    }, 1000);
+    }, 500);
   }
 
   updateFullscreenBtn() {
@@ -143,9 +144,9 @@ class BackpackGame {
 
     // 初始贈送裝備進入備用箱
     this.stashItems = [
-      { instanceId: 'init_1', item: ITEMS_DATABASE[0], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[0].shape)) }, // 鐵劍
-      { instanceId: 'init_2', item: ITEMS_DATABASE[1], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[1].shape)) }, // 木盾
-      { instanceId: 'init_3', item: ITEMS_DATABASE[2], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[2].shape)) }  // 藥水
+      { instanceId: 'init_1', item: ITEMS_DATABASE[0], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[0].shape)), star: 1 }, // 鐵劍
+      { instanceId: 'init_2', item: ITEMS_DATABASE[1], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[1].shape)), star: 1 }, // 木盾
+      { instanceId: 'init_3', item: ITEMS_DATABASE[2], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[2].shape)), star: 1 }  // 藥水
     ];
 
     this.spawnEnemy();
@@ -288,6 +289,7 @@ class BackpackGame {
     const shape = st.shape;
     const h = shape.length;
     const w = shape[0].length;
+    const star = st.star || 1;
 
     let cellsHtml = '';
     for (let r = 0; r < h; r++) {
@@ -300,7 +302,7 @@ class BackpackGame {
       <span class="item-detail-icon">${st.item.icon}</span>
       <span class="item-detail-shape" style="grid-template-columns: repeat(${w}, 1fr); grid-template-rows: repeat(${h}, 1fr);">${cellsHtml}</span>
       <span class="item-detail-info">
-        <span class="item-detail-name">${st.item.name}<span class="item-detail-dim">${w}×${h}</span></span>
+        <span class="item-detail-name">${st.item.name}${star > 1 ? ` <span class="item-detail-star">${'★'.repeat(star)}</span>` : ''}<span class="item-detail-dim">${w}×${h}</span></span>
         <span class="item-detail-desc">${st.item.description}</span>
       </span>
       <span class="item-detail-cost">⚡${st.item.cost}</span>
@@ -316,10 +318,46 @@ class BackpackGame {
 
   returnPlacedItemToStash(pi) {
     this.removePlacedItem(pi);
-    this.stashItems.push({ instanceId: pi.instanceId, item: pi.item, shape: pi.shape });
+    this.stashItems.push({ instanceId: pi.instanceId, item: pi.item, shape: pi.shape, star: pi.star || 1 });
     this.renderStash();
     this.renderPlacedItems();
     this.log(`將【${pi.item.name}】移回了備用箱！`);
+  }
+
+  // 星等效果縮放：2 星 = 1.5 倍、3 星 = 2 倍，四捨五入取整數
+  starMultiplier(star) {
+    return 1 + ((star || 1) - 1) * 0.5;
+  }
+
+  scaledValue(base, star) {
+    return Math.round((base || 0) * this.starMultiplier(star));
+  }
+
+  // 合成升星：物資箱中選取一件裝備後，點擊另一件「相同裝備且星等相同」的裝備即可合成
+  canMergeStashItems(a, b) {
+    if (!a || !b || a === b) return false;
+    if (a.item.id !== b.item.id) return false;
+    const starA = a.star || 1;
+    const starB = b.star || 1;
+    if (starA !== starB) return false;
+    if (starA >= this.maxStar) return false;
+    return true;
+  }
+
+  mergeStashItems(a, b) {
+    const newStar = (a.star || 1) + 1;
+    const merged = {
+      instanceId: `merged_${a.instanceId}_${b.instanceId}`,
+      item: a.item,
+      shape: JSON.parse(JSON.stringify(a.item.shape)),
+      star: newStar
+    };
+    this.stashItems = this.stashItems.filter(s => s !== a && s !== b);
+    this.stashItems.push(merged);
+    this.selectedStashItem = merged;
+    this.renderItemDetail(merged);
+    this.renderStash();
+    this.log(`✨ 合成成功！【${merged.item.name}】升級為 ${'★'.repeat(newStar)}！`);
   }
 
   // 建立跟隨手指移動的觸控拖曳縮圖（與滑鼠版 DragImage 外觀一致）
@@ -475,6 +513,7 @@ class BackpackGame {
     }
 
     this.stashItems.forEach((st) => {
+      const star = st.star || 1;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `stash-icon-btn ${this.selectedStashItem === st ? 'selected' : ''}`;
@@ -482,10 +521,17 @@ class BackpackGame {
       btn.innerHTML = `
         <span class="stash-icon-emoji">${st.item.icon}</span>
         <span class="stash-icon-cost">⚡${st.item.cost}</span>
+        ${star > 1 ? `<span class="stash-icon-star">★${star}</span>` : ''}
       `;
 
-      // 點擊：選取並在上方顯示詳情
-      btn.addEventListener('click', () => this.selectStashItem(st));
+      // 點擊：若已選取另一件「相同裝備且星等相同」的裝備，點擊即合成升星；否則選取並在上方顯示詳情
+      btn.addEventListener('click', () => {
+        if (this.selectedStashItem && this.selectedStashItem !== st && this.canMergeStashItems(this.selectedStashItem, st)) {
+          this.mergeStashItems(this.selectedStashItem, st);
+        } else {
+          this.selectStashItem(st);
+        }
+      });
 
       // 拖曳事件監聽 (搭配自訂形狀 DragImage 縮圖)。拖曳中途不重繪物資箱，避免節點參照失效
       btn.addEventListener('dragstart', (e) => {
@@ -520,10 +566,11 @@ class BackpackGame {
     const { cellWidth, cellHeight, gap } = this.getCellMetrics();
 
     this.placedItems.forEach((pi) => {
+      const star = pi.star || 1;
       const el = document.createElement('div');
-      el.className = 'placed-item';
+      el.className = `placed-item ${pi.usedThisTurn ? 'used' : ''}`;
       el.draggable = true; // 背包內的物品也可以拖曳移動位置或拉回備用箱
-      
+
       const widthCols = pi.shape[0].length;
       const heightRows = pi.shape.length;
 
@@ -540,6 +587,7 @@ class BackpackGame {
       el.innerHTML = `
         <span style="font-size: 1.4rem;">${pi.item.icon}</span>
         <span style="font-size: 0.7rem; color: var(--accent-gold); font-weight:700;">${pi.item.name}</span>
+        ${star > 1 ? `<span class="placed-item-star">★${star}</span>` : ''}
       `;
 
       // 點擊發動裝備
@@ -653,7 +701,9 @@ class BackpackGame {
       item: stashObj.item,
       r: startR,
       c: startC,
-      shape: shape
+      shape: shape,
+      star: stashObj.star || 1,
+      usedThisTurn: false
     };
 
     this.fillGridForPlacedItem(placedObj);
@@ -709,27 +759,42 @@ class BackpackGame {
   useItem(placedObj) {
     const item = placedObj.item;
 
+    // 主動裝備（武器／防具／藥水）每回合限用一次，避免 0 能量消耗的裝備無限連打
+    if (placedObj.usedThisTurn) {
+      this.log(`【${item.name}】本回合已經使用過了，下回合才能再用！`);
+      return;
+    }
+
     if (this.player.energy < item.cost) {
       this.log(`能量不足！使用【${item.name}】需要 ${item.cost} 點能量。`);
       return;
     }
 
     this.player.energy -= item.cost;
-    let bonusDamage = this.calculatePassiveBonus(placedObj);
+    const star = placedObj.star || 1;
+    let bonus = this.calculatePassiveBonus(placedObj);
 
     if (item.type === 'weapon') {
-      let dmg = item.effect.damage + bonusDamage;
+      let dmg = this.scaledValue(item.effect.damage, star) + bonus;
       this.currentEnemy.hp = Math.max(0, this.currentEnemy.hp - dmg);
-      this.log(`⚔️ 你使用【${item.name}】造成了 ${dmg} 點傷害！${bonusDamage > 0 ? `(寶石加成 +${bonusDamage})` : ''}`);
+      this.log(`⚔️ 你使用【${item.name}】造成了 ${dmg} 點傷害！${bonus > 0 ? `(加成 +${bonus})` : ''}`);
+      placedObj.usedThisTurn = true;
     } else if (item.type === 'shield') {
-      let block = item.effect.block;
+      let block = this.scaledValue(item.effect.block, star) + bonus;
       this.player.block += block;
-      this.log(`🛡️ 你使用【${item.name}】獲得了 ${block} 點護盾！`);
+      this.log(`🛡️ 你使用【${item.name}】獲得了 ${block} 點護盾！${bonus > 0 ? `(加成 +${bonus})` : ''}`);
+      placedObj.usedThisTurn = true;
     } else if (item.type === 'potion') {
-      let heal = item.effect.heal;
-      this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
-      this.log(`🧪 你使用了【${item.name}】恢復了 ${heal} 點生命值！`);
-      
+      let heal = this.scaledValue(item.effect.heal || 0, star);
+      let energyGain = this.scaledValue(item.effect.energy || 0, star);
+      if (heal > 0) this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
+      if (energyGain > 0) this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + energyGain);
+      const parts = [];
+      if (heal > 0) parts.push(`恢復了 ${heal} 點生命值`);
+      if (energyGain > 0) parts.push(`回復了 ${energyGain} 點能量`);
+      this.log(`🧪 你使用了【${item.name}】，${parts.join('、')}！`);
+      placedObj.usedThisTurn = true;
+
       if (item.consumable) {
         this.removePlacedItem(placedObj);
       }
@@ -737,6 +802,7 @@ class BackpackGame {
       this.log(`【${item.name}】為被動配件，會在相鄰物品效果中自動加成！`);
     }
 
+    this.renderPlacedItems();
     this.updateUI();
 
     if (this.currentEnemy.hp <= 0) {
@@ -751,11 +817,17 @@ class BackpackGame {
   }
 
   calculatePassiveBonus(placedObj) {
+    const passiveNeeded = placedObj.item.type === 'weapon' ? 'boost_above_weapon'
+      : placedObj.item.type === 'shield' ? 'boost_above_shield'
+      : null;
+    if (!passiveNeeded) return 0;
+
     let bonus = 0;
     this.placedItems.forEach((other) => {
-      if (other.item.passive === 'boost_above_weapon') {
+      if (other.item.passive === passiveNeeded) {
         if (other.c === placedObj.c && other.r === placedObj.r + placedObj.shape.length) {
-          bonus += (other.item.bonusDamage || 4);
+          const base = other.item.bonusDamage || other.item.bonusBlock || 4;
+          bonus += this.scaledValue(base, other.star || 1);
         }
       }
     });
@@ -789,6 +861,9 @@ class BackpackGame {
     }
 
     this.player.energy = this.player.maxEnergy;
+    // 新回合開始，解除所有裝備的「本回合已使用」鎖定
+    this.placedItems.forEach(p => { p.usedThisTurn = false; });
+    this.renderPlacedItems();
     this.updateUI();
 
     if (this.player.hp <= 0) {
@@ -810,7 +885,8 @@ class BackpackGame {
     this.stashItems.push({
       instanceId: `loot_${Date.now()}`,
       item: randomLoot,
-      shape: JSON.parse(JSON.stringify(randomLoot.shape))
+      shape: JSON.parse(JSON.stringify(randomLoot.shape)),
+      star: 1
     });
 
     lootDisplay.innerHTML = `
@@ -879,5 +955,5 @@ class BackpackGame {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  new BackpackGame();
+  window.game = new BackpackGame();
 });
