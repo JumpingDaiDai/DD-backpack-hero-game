@@ -24,7 +24,7 @@ class BackpackGame {
     
     // 當前選取/拖曳/旋轉暫存
     this.selectedStashItem = null;
-    this.selectedPlacedItem = null;
+    this.draggedItemObj = null; // 當前正在拖曳的物件 { source: 'stash'|'placed', obj }
 
     this.initDOM();
     this.initGame();
@@ -50,7 +50,35 @@ class BackpackGame {
     document.getElementById('end-turn-btn').addEventListener('click', () => this.endTurn());
     document.getElementById('modal-next-btn').addEventListener('click', () => this.nextLevel());
 
-    // 全域快捷鍵
+    // 備用箱也做成 Drop 區域（拖回備用箱）
+    this.stashContainerEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      this.stashContainerEl.classList.add('drag-over');
+    });
+
+    this.stashContainerEl.addEventListener('dragleave', () => {
+      this.stashContainerEl.classList.remove('drag-over');
+    });
+
+    this.stashContainerEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      this.stashContainerEl.classList.remove('drag-over');
+      if (this.draggedItemObj && this.draggedItemObj.source === 'placed') {
+        const pi = this.draggedItemObj.obj;
+        this.removePlacedItem(pi);
+        this.stashItems.push({
+          instanceId: pi.instanceId,
+          item: pi.item,
+          shape: pi.shape
+        });
+        this.renderStash();
+        this.renderPlacedItems();
+        this.log(`將【${pi.item.name}】移回了備用箱！`);
+        this.draggedItemObj = null;
+      }
+    });
+
+    // 全域快捷鍵 (R 鍵旋轉)
     window.addEventListener('keydown', (e) => {
       if (e.key === 'r' || e.key === 'R') {
         this.rotateSelected();
@@ -75,7 +103,7 @@ class BackpackGame {
     this.renderGridCells();
     this.renderStash();
     this.updateUI();
-    this.log('冒險開始！請將備用箱的裝備放入背包整理！');
+    this.log('冒險開始！你可以點擊選取或直接「拖曳裝備」進背包整理！(按 R 可旋轉)');
   }
 
   spawnEnemy() {
@@ -99,6 +127,23 @@ class BackpackGame {
         
         // 點擊網格放置當前選取的備用裝備
         cell.addEventListener('click', () => this.onGridCellClick(r, c));
+
+        // Drag & Drop 事件
+        cell.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          cell.classList.add('drag-over');
+        });
+
+        cell.addEventListener('dragleave', () => {
+          cell.classList.remove('drag-over');
+        });
+
+        cell.addEventListener('drop', (e) => {
+          e.preventDefault();
+          cell.classList.remove('drag-over');
+          this.handleDropOnCell(r, c);
+        });
+
         this.backpackGridEl.appendChild(cell);
       }
     }
@@ -114,6 +159,8 @@ class BackpackGame {
     this.stashItems.forEach((st) => {
       const card = document.createElement('div');
       card.className = `item-card ${this.selectedStashItem === st ? 'selected' : ''}`;
+      card.draggable = true; // 啟用 HTML5 拖曳
+
       card.innerHTML = `
         <div class="item-icon">${st.item.icon}</div>
         <div class="item-details">
@@ -123,11 +170,23 @@ class BackpackGame {
         <div class="item-cost">⚡${st.item.cost}</div>
       `;
 
+      // 點擊選取
       card.addEventListener('click', () => {
         this.selectedStashItem = st;
-        this.selectedPlacedItem = null;
-        this.log(`選取了【${st.item.name}】！點擊背包網格放入，或按 R 鍵旋轉。`);
+        this.log(`選取了【${st.item.name}】！點擊背包網格或拖曳放入，按 R 鍵可旋轉。`);
         this.renderStash();
+      });
+
+      // 拖曳事件監聽
+      card.addEventListener('dragstart', (e) => {
+        this.selectedStashItem = st;
+        this.draggedItemObj = { source: 'stash', obj: st };
+        card.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', st.instanceId);
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
       });
 
       this.stashContainerEl.appendChild(card);
@@ -147,6 +206,7 @@ class BackpackGame {
     this.placedItems.forEach((pi) => {
       const el = document.createElement('div');
       el.className = 'placed-item';
+      el.draggable = true; // 背包內的物品也可以拖曳移動位置或拉回備用箱
       
       const widthCols = pi.shape[0].length;
       const heightRows = pi.shape.length;
@@ -161,14 +221,63 @@ class BackpackGame {
         <span style="font-size: 0.7rem; color: var(--accent-gold); font-weight:700;">${pi.item.name}</span>
       `;
 
-      // 點擊觸發裝備發動/使用
+      // 點擊發動裝備
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         this.useItem(pi);
       });
 
+      // 拖曳已放置的物品
+      el.addEventListener('dragstart', (e) => {
+        this.selectedStashItem = null;
+        this.draggedItemObj = { source: 'placed', obj: pi };
+        el.style.opacity = '0.5';
+        e.dataTransfer.setData('text/plain', pi.instanceId);
+      });
+
+      el.addEventListener('dragend', () => {
+        el.style.opacity = '1';
+      });
+
       this.backpackGridEl.appendChild(el);
     });
+  }
+
+  handleDropOnCell(targetR, targetC) {
+    if (!this.draggedItemObj) return;
+
+    if (this.draggedItemObj.source === 'stash') {
+      const st = this.draggedItemObj.obj;
+      if (this.canPlaceItem(st.shape, targetR, targetC)) {
+        this.placeItem(st, targetR, targetC);
+        this.stashItems = this.stashItems.filter(s => s !== st);
+        this.selectedStashItem = null;
+        this.renderStash();
+        this.renderPlacedItems();
+        this.log(`成功將【${st.item.name}】拖曳放進背包！`);
+      } else {
+        this.log(`無法放置【${st.item.name}】：空間被佔用或超出邊界！`);
+      }
+    } else if (this.draggedItemObj.source === 'placed') {
+      const pi = this.draggedItemObj.obj;
+      // 暫時將其從網格移除來測試能否放入新位置
+      this.clearGridForPlacedItem(pi);
+      
+      if (this.canPlaceItem(pi.shape, targetR, targetC)) {
+        pi.r = targetR;
+        pi.c = targetC;
+        this.fillGridForPlacedItem(pi);
+        this.renderPlacedItems();
+        this.log(`移動了【${pi.item.name}】的位置！`);
+      } else {
+        // 放不進去，恢復原位置
+        this.fillGridForPlacedItem(pi);
+        this.renderPlacedItems();
+        this.log(`無法移動【${pi.item.name}】：目標位置無足夠空間！`);
+      }
+    }
+
+    this.draggedItemObj = null;
   }
 
   onGridCellClick(r, c) {
@@ -176,7 +285,6 @@ class BackpackGame {
       const st = this.selectedStashItem;
       if (this.canPlaceItem(st.shape, r, c)) {
         this.placeItem(st, r, c);
-        // 從備用箱移除
         this.stashItems = this.stashItems.filter(s => s !== st);
         this.selectedStashItem = null;
         this.renderStash();
@@ -219,6 +327,14 @@ class BackpackGame {
       shape: shape
     };
 
+    this.fillGridForPlacedItem(placedObj);
+    this.placedItems.push(placedObj);
+  }
+
+  fillGridForPlacedItem(placedObj) {
+    const { shape, r: startR, c: startC } = placedObj;
+    const h = shape.length;
+    const w = shape[0].length;
     for (let r = 0; r < h; r++) {
       for (let c = 0; c < w; c++) {
         if (shape[r][c] === 1) {
@@ -226,8 +342,16 @@ class BackpackGame {
         }
       }
     }
+  }
 
-    this.placedItems.push(placedObj);
+  clearGridForPlacedItem(placedObj) {
+    for (let r = 0; r < this.gridRows; r++) {
+      for (let c = 0; c < this.gridCols; c++) {
+        if (this.grid[r][c] === placedObj) {
+          this.grid[r][c] = null;
+        }
+      }
+    }
   }
 
   rotateSelected() {
@@ -292,10 +416,8 @@ class BackpackGame {
 
   calculatePassiveBonus(placedObj) {
     let bonus = 0;
-    // 檢查放置物件四周/上方是否有寶石被動加成
     this.placedItems.forEach((other) => {
       if (other.item.passive === 'boost_above_weapon') {
-        // 如果這個寶石位在武器的正下方 (c 相等，r = weapon.r + height)
         if (other.c === placedObj.c && other.r === placedObj.r + placedObj.shape.length) {
           bonus += (other.item.bonusDamage || 4);
         }
@@ -306,20 +428,13 @@ class BackpackGame {
 
   removePlacedItem(placedObj) {
     this.placedItems = this.placedItems.filter(p => p !== placedObj);
-    for (let r = 0; r < this.gridRows; r++) {
-      for (let c = 0; c < this.gridCols; c++) {
-        if (this.grid[r][c] === placedObj) {
-          this.grid[r][c] = null;
-        }
-      }
-    }
+    this.clearGridForPlacedItem(placedObj);
     this.renderPlacedItems();
   }
 
   endTurn() {
     this.log(`⏳ 回合結束！輪到【${this.currentEnemy.name}】行動！`);
 
-    // 敵人攻擊邏輯
     let attack = this.currentEnemy.attack;
     if (this.player.block > 0) {
       if (this.player.block >= attack) {
@@ -336,7 +451,6 @@ class BackpackGame {
       this.log(`💥 【${this.currentEnemy.name}】對你造成了 ${attack} 點傷害！`);
     }
 
-    // 玩家回合重置 (恢復能量)
     this.player.energy = this.player.maxEnergy;
     this.updateUI();
 
@@ -355,7 +469,6 @@ class BackpackGame {
     modalTitle.textContent = `第 ${this.dungeonLevel + 1} 層勝利！`;
     modalBody.textContent = `你成功打敗了【${this.currentEnemy.name}】！獲得戰利品裝備：`;
 
-    // 隨機獲得一件新裝備
     const randomLoot = ITEMS_DATABASE[Math.floor(Math.random() * ITEMS_DATABASE.length)];
     this.stashItems.push({
       instanceId: `loot_${Date.now()}`,
@@ -407,14 +520,12 @@ class BackpackGame {
   }
 
   updateUI() {
-    // 玩家狀態
     const playerHpPct = (this.player.hp / this.player.maxHp) * 100;
     this.playerHpBarEl.style.width = `${playerHpPct}%`;
     this.playerHpTextEl.textContent = `${this.player.hp} / ${this.player.maxHp}`;
     this.playerBlockEl.textContent = `🛡️ 護盾: ${this.player.block}`;
     this.energyDisplayEl.textContent = `${this.player.energy} / ${this.player.maxEnergy}`;
 
-    // 敵人狀態
     if (this.currentEnemy) {
       this.enemyAvatarEl.textContent = this.currentEnemy.emoji;
       this.enemyNameEl.textContent = this.currentEnemy.name;
