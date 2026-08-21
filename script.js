@@ -298,12 +298,46 @@ class BackpackGame {
     this.hideItemDetail();
   }
 
+  getItemDynamicDescription(st) {
+    const star = st.star || 1;
+    const isPlaced = this.placedItems.includes(st);
+    const bonus = isPlaced ? this.calculatePassiveBonus(st) : 0;
+    const item = st.item;
+
+    if (item.type === 'weapon') {
+      const baseDmg = this.scaledValue(item.effect.damage, star);
+      const totalDmg = baseDmg + bonus;
+      const bonusText = bonus > 0 ? ` (基礎 ${baseDmg} + 寶石加成 +${bonus})` : (star > 1 ? ` (基礎 ${item.effect.damage} → ${baseDmg})` : '');
+      return `造成 ${totalDmg} 點傷害${bonusText}。消耗 ${item.cost} 能量，每回合限用一次。`;
+    } else if (item.type === 'shield') {
+      const baseBlock = this.scaledValue(item.effect.block, star);
+      const totalBlock = baseBlock + bonus;
+      const bonusText = bonus > 0 ? ` (基礎 ${baseBlock} + 寶石加成 +${bonus})` : (star > 1 ? ` (基礎 ${item.effect.block} → ${baseBlock})` : '');
+      return `獲得 ${totalBlock} 點護盾${bonusText}。消耗 ${item.cost} 能量，每回合限用一次。`;
+    } else if (item.type === 'potion') {
+      const heal = this.scaledValue(item.effect.heal || 0, star);
+      const energyGain = this.scaledValue(item.effect.energy || 0, star);
+      const parts = [];
+      if (heal > 0) parts.push(`恢復 ${heal} 生命`);
+      if (energyGain > 0) parts.push(`回復 ${energyGain} 能量`);
+      return `使用後${parts.join('、')}。${star > 1 ? ` (${star}★ 效果倍率大增)` : ''}`;
+    } else if (item.passive === 'boost_above_weapon') {
+      const bonusDmg = this.scaledValue(item.bonusDamage || 4, star);
+      return `被動：使正上方相鄰的武器傷害 +${bonusDmg}。`;
+    } else if (item.passive === 'boost_above_shield') {
+      const bonusShield = this.scaledValue(item.bonusBlock || 4, star);
+      return `被動：使正上方相鄰的防具護盾 +${bonusShield}。`;
+    }
+    return item.description;
+  }
+
   renderItemDetail(st) {
-    if (!this.itemDetailBarEl) return;
+    if (!this.itemDetailBarEl || !st) return;
     const shape = st.shape;
     const h = shape.length;
     const w = shape[0].length;
     const star = st.star || 1;
+    const dynamicDesc = this.getItemDynamicDescription(st);
 
     let cellsHtml = '';
     for (let r = 0; r < h; r++) {
@@ -317,7 +351,7 @@ class BackpackGame {
       <span class="item-detail-shape" style="grid-template-columns: repeat(${w}, 1fr); grid-template-rows: repeat(${h}, 1fr);">${cellsHtml}</span>
       <span class="item-detail-info">
         <span class="item-detail-name">${st.item.name}${star > 1 ? ` <span class="item-detail-star">${'★'.repeat(star)}</span>` : ''}<span class="item-detail-dim">${w}×${h}</span></span>
-        <span class="item-detail-desc">${st.item.description}</span>
+        <span class="item-detail-desc">${dynamicDesc}</span>
       </span>
       <span class="item-detail-cost">⚡${st.item.cost}</span>
     `;
@@ -439,13 +473,12 @@ class BackpackGame {
 
     if (isTargetPlaced && this.canPlaceItem(mergedObj.shape, finalR, finalC)) {
       this.placeItem(mergedObj, finalR, finalC);
-      this.renderPlacedItems();
     } else {
       this.stashItems.push(mergedObj);
-      this.renderStash();
-      this.renderPlacedItems();
     }
 
+    this.renderStash();
+    this.renderPlacedItems();
     this.log(`✨ 合成成功！【${mergedObj.item.name}】拖曳升級為 ${'★'.repeat(newStar)}！`);
   }
 
