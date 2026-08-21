@@ -205,9 +205,12 @@ class BackpackGame {
     }
   }
 
-  // 高亮涵蓋的所有網格 (合法為 drag-over 藍光，衝突/超出為 invalid-over 紅光)
+  // 高亮涵蓋的所有網格 (合法為 drag-over 藍光，合成目標為 merge-over 金光，衝突/超出為 invalid-over 紅光)
   highlightGridCells(startR, startC, shape, draggedItem) {
     this.clearGridHighlights();
+
+    // 優先檢測是否有可合成目標裝備
+    const mergeTarget = this.findMergeTargetOnGrid(draggedItem, startR, startC);
 
     // 若拖曳的是已放置物品，預覽時暫時無視它原先佔用的格子
     if (this.draggedItemObj && this.draggedItemObj.source === 'placed') {
@@ -226,7 +229,13 @@ class BackpackGame {
           if (targetR < this.gridRows && targetC < this.gridCols) {
             const cell = this.backpackGridEl.querySelector(`.grid-cell[data-r="${targetR}"][data-c="${targetC}"]`);
             if (cell) {
-              cell.classList.add(isValid ? 'drag-over' : 'invalid-over');
+              if (mergeTarget) {
+                cell.classList.add('merge-over');
+              } else if (isValid) {
+                cell.classList.add('drag-over');
+              } else {
+                cell.classList.add('invalid-over');
+              }
             }
           }
         }
@@ -242,7 +251,7 @@ class BackpackGame {
   clearGridHighlights() {
     const cells = this.backpackGridEl.querySelectorAll('.grid-cell');
     cells.forEach(cell => {
-      cell.classList.remove('drag-over', 'invalid-over');
+      cell.classList.remove('drag-over', 'invalid-over', 'merge-over');
     });
   }
 
@@ -336,9 +345,19 @@ class BackpackGame {
     return Math.round((base || 0) * this.starMultiplier(star));
   }
 
-  // 合成升星：物資箱中選取一件裝備後，點擊另一件「相同裝備且星等相同」的裝備即可合成
-  canMergeStashItems(a, b) {
+  // 星等效果縮放：2 星 = 1.5 倍、3 星 = 2 倍，四捨五入取整數
+  starMultiplier(star) {
+    return 1 + ((star || 1) - 1) * 0.5;
+  }
+
+  scaledValue(base, star) {
+    return Math.round((base || 0) * this.starMultiplier(star));
+  }
+
+  // 判斷兩件裝備是否可以合成升星 (同裝備 ID、同星等、星等 < 3)
+  canMerge(a, b) {
     if (!a || !b || a === b) return false;
+    if (a.instanceId === b.instanceId) return false;
     if (a.item.id !== b.item.id) return false;
     const starA = a.star || 1;
     const starB = b.star || 1;
@@ -347,20 +366,86 @@ class BackpackGame {
     return true;
   }
 
-  mergeStashItems(a, b) {
-    const newStar = (a.star || 1) + 1;
-    const merged = {
-      instanceId: `merged_${a.instanceId}_${b.instanceId}`,
-      item: a.item,
-      shape: JSON.parse(JSON.stringify(a.item.shape)),
-      star: newStar
+  // 檢測懸停網格位置是否有可以與 draggedObj 合成的裝備
+  findMergeTargetOnGrid(draggedObj, startR, startC) {
+    if (!draggedObj) return null;
+    const shape = draggedObj.shape;
+    const h = shape.length;
+    const w = shape[0].length;
+
+    // 若拖拽的是已放置物品，暫時清空其佔用格子以利精準碰撞
+    if (this.draggedItemObj && this.draggedItemObj.source === 'placed') {
+      this.clearGridForPlacedItem(draggedObj);
+    }
+
+    let targetItem = null;
+    for (let r = 0; r < h; r++) {
+      for (let c = 0; c < w; c++) {
+        if (shape[r][c] === 1) {
+          const targetR = startR + r;
+          const targetC = startC + c;
+          if (targetR < this.gridRows && targetC < this.gridCols) {
+            const occupant = this.grid[targetR][targetC];
+            if (occupant && occupant !== draggedObj && this.canMerge(draggedObj, occupant)) {
+              targetItem = occupant;
+              break;
+            }
+          }
+        }
+      }
+      if (targetItem) break;
+    }
+
+    if (this.draggedItemObj && this.draggedItemObj.source === 'placed') {
+      this.fillGridForPlacedItem(draggedObj);
+    }
+
+    return targetItem;
+  }
+
+  // 執行拖曳合成 (支援放置裝備與物資箱裝備任意組合)
+  performDragMerge(sourceItem, targetItem, targetR, targetC) {
+    const newStar = (sourceItem.star || 1) + 1;
+
+    // 移除來源裝備
+    if (this.draggedItemObj.source === 'stash') {
+      this.stashItems = this.stashItems.filter(s => s !== sourceItem);
+    } else if (this.draggedItemObj.source === 'placed') {
+      this.removePlacedItem(sourceItem);
+    }
+
+    // 移除目標裝備
+    const isTargetPlaced = this.placedItems.includes(targetItem);
+    let finalR = targetR;
+    let finalC = targetC;
+    if (isTargetPlaced) {
+      finalR = targetItem.r;
+      finalC = targetItem.c;
+      this.removePlacedItem(targetItem);
+    } else {
+      this.stashItems = this.stashItems.filter(s => s !== targetItem);
+    }
+
+    // 建立合成後升星的新裝備
+    const mergedObj = {
+      instanceId: `merged_${sourceItem.instanceId}_${targetItem.instanceId}`,
+      item: sourceItem.item,
+      shape: JSON.parse(JSON.stringify(sourceItem.item.shape)),
+      star: newStar,
+      usedThisTurn: false
     };
-    this.stashItems = this.stashItems.filter(s => s !== a && s !== b);
-    this.stashItems.push(merged);
-    this.selectedStashItem = merged;
-    this.renderItemDetail(merged);
-    this.renderStash();
-    this.log(`✨ 合成成功！【${merged.item.name}】升級為 ${'★'.repeat(newStar)}！`);
+
+    if (isTargetPlaced && this.canPlaceItem(mergedObj.shape, finalR, finalC)) {
+      this.placeItem(mergedObj, finalR, finalC);
+      this.renderPlacedItems();
+    } else {
+      this.stashItems.push(mergedObj);
+      this.renderStash();
+      this.renderPlacedItems();
+    }
+
+    this.selectStashItem(mergedObj);
+    this.log(`✨ 合成成功！【${mergedObj.item.name}】拖曳升級為 ${'★'.repeat(newStar)}！`);
   }
 
   // 建立跟隨手指移動的觸控拖曳縮圖（與滑鼠版 DragImage 外觀一致）
@@ -527,12 +612,29 @@ class BackpackGame {
         ${star > 1 ? `<span class="stash-icon-star">★${star}</span>` : ''}
       `;
 
-      // 點擊：若已選取另一件「相同裝備且星等相同」的裝備，點擊即合成升星；否則選取並在上方顯示詳情
+      // 點擊：選取並在上方顯示詳情
       btn.addEventListener('click', () => {
-        if (this.selectedStashItem && this.selectedStashItem !== st && this.canMergeStashItems(this.selectedStashItem, st)) {
-          this.mergeStashItems(this.selectedStashItem, st);
-        } else {
-          this.selectStashItem(st);
+        this.selectStashItem(st);
+      });
+
+      // 物資箱圖示支援拖曳懸停與放置合成
+      btn.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (this.draggedItemObj && this.canMerge(this.draggedItemObj.obj, st)) {
+          btn.classList.add('merge-over');
+        }
+      });
+
+      btn.addEventListener('dragleave', () => {
+        btn.classList.remove('merge-over');
+      });
+
+      btn.addEventListener('drop', (e) => {
+        e.preventDefault();
+        btn.classList.remove('merge-over');
+        if (this.draggedItemObj && this.canMerge(this.draggedItemObj.obj, st)) {
+          this.performDragMerge(this.draggedItemObj.obj, st, 0, 0);
+          this.draggedItemObj = null;
         }
       });
 
@@ -626,8 +728,18 @@ class BackpackGame {
   handleDropOnCell(targetR, targetC) {
     if (!this.draggedItemObj) return;
 
+    const sourceObj = this.draggedItemObj.obj;
+
+    // 優先檢測是否有可合成的目標裝備
+    const mergeTarget = this.findMergeTargetOnGrid(sourceObj, targetR, targetC);
+    if (mergeTarget) {
+      this.performDragMerge(sourceObj, mergeTarget, targetR, targetC);
+      this.draggedItemObj = null;
+      return;
+    }
+
     if (this.draggedItemObj.source === 'stash') {
-      const st = this.draggedItemObj.obj;
+      const st = sourceObj;
       if (this.canPlaceItem(st.shape, targetR, targetC)) {
         this.placeItem(st, targetR, targetC);
         this.stashItems = this.stashItems.filter(s => s !== st);
@@ -639,7 +751,7 @@ class BackpackGame {
         this.log(`無法放置【${st.item.name}】：空間被佔用或超出邊界！`);
       }
     } else if (this.draggedItemObj.source === 'placed') {
-      const pi = this.draggedItemObj.obj;
+      const pi = sourceObj;
       // 暫時將其從網格移除來測試能否放入新位置
       this.clearGridForPlacedItem(pi);
       
