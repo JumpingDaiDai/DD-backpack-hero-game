@@ -932,16 +932,34 @@ class BackpackGame {
   }
 
   calculatePassiveBonus(placedObj) {
-    const passiveNeeded = placedObj.item.type === 'weapon' ? 'boost_above_weapon'
-      : placedObj.item.type === 'shield' ? 'boost_above_shield'
-      : null;
-    if (!passiveNeeded) return 0;
+    const isWeapon = placedObj.item.type === 'weapon';
+    const isShield = placedObj.item.type === 'shield';
+    if (!isWeapon && !isShield) return 0;
+
+    const targetRStart = placedObj.r;
+    const targetREnd = placedObj.r + placedObj.shape.length - 1;
+    const targetCStart = placedObj.c;
+    const targetCEnd = placedObj.c + placedObj.shape[0].length - 1;
 
     let bonus = 0;
     this.placedItems.forEach((other) => {
-      if (other.item.passive === passiveNeeded) {
-        if (other.c === placedObj.c && other.r === placedObj.r + placedObj.shape.length) {
-          const base = other.item.bonusDamage || other.item.bonusBlock || 4;
+      if (!other.item.passive) return;
+
+      const otherCStart = other.c;
+      const otherCEnd = other.c + other.shape[0].length - 1;
+      const isColOverlap = Math.max(targetCStart, otherCStart) <= Math.min(targetCEnd, otherCEnd);
+      if (!isColOverlap) return;
+
+      if (isWeapon && other.item.passive === 'boost_above_weapon') {
+        // 紅寶石 (位於武器正下方)：寶石頂端 row 等於 武器底端 row + 1
+        if (other.r === targetREnd + 1) {
+          const base = other.item.bonusDamage || 4;
+          bonus += this.scaledValue(base, other.star || 1);
+        }
+      } else if (isShield && other.item.passive === 'boost_above_shield') {
+        // 藍寶石 (位於防具正下方)：寶石頂端 row 等於 防具底端 row + 1
+        if (other.r === targetREnd + 1) {
+          const base = other.item.bonusBlock || 4;
           bonus += this.scaledValue(base, other.star || 1);
         }
       }
