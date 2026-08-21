@@ -462,6 +462,9 @@ body {
   gap: clamp(6px, 1.4dvh, 10px);
   overflow-x: auto;
   overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scroll-behavior: smooth;
 }
 
 .stash-bar.drag-over {
@@ -488,7 +491,7 @@ body {
   align-items: center;
   justify-content: center;
   cursor: grab;
-  touch-action: none;
+  touch-action: pan-x;
   transition: border-color 0.15s, transform 0.1s;
   font-family: inherit;
 }

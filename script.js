@@ -81,6 +81,16 @@ class BackpackGame {
       }
     });
 
+    // 待整理物資箱：滑鼠滾輪垂直滾動時，轉為水平滾動
+    if (this.stashContainerEl) {
+      this.stashContainerEl.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          this.stashContainerEl.scrollLeft += e.deltaY;
+        }
+      }, { passive: false });
+    }
+
     // 全域快捷鍵 (R 鍵旋轉)
     window.addEventListener('keydown', (e) => {
       if (e.key === 'r' || e.key === 'R') {
