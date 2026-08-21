@@ -171,10 +171,14 @@ const ITEMS_DATABASE = [
   }
 ];
 
-// 地牢敵人資料庫
+// 地牢敵人資料庫 (8 種層數漸進怪物)
 const ENEMIES_DATABASE = [
-  { name: '地牢史萊姆', emoji: '🟢', hp: 20, maxHp: 20, attack: 5 },
-  { name: '哥布林戰士', emoji: '👺', hp: 35, maxHp: 35, attack: 8 },
-  { name: '骨骸劍士', emoji: '💀', hp: 50, maxHp: 50, attack: 12 },
-  { name: '地牢領主・黑龍', emoji: '🐲', hp: 90, maxHp: 90, attack: 16 }
+  { name: '地牢史萊姆', emoji: '🟢', hp: 22, maxHp: 22, attack: 4 },
+  { name: '野蠻哥布林', emoji: '👺', hp: 32, maxHp: 32, attack: 7 },
+  { name: '墓穴蛛王', emoji: '🕷️', hp: 44, maxHp: 44, attack: 9 },
+  { name: '骨骸劍士', emoji: '💀', hp: 58, maxHp: 58, attack: 11 },
+  { name: '熔岩巨石怪', emoji: '🗿', hp: 75, maxHp: 75, attack: 13 },
+  { name: '暗影刺客', emoji: '🥷', hp: 90, maxHp: 90, attack: 15 },
+  { name: '狂暴巨魔', emoji: '👹', hp: 110, maxHp: 110, attack: 18 },
+  { name: '地牢領主・黑龍', emoji: '🐲', hp: 140, maxHp: 140, attack: 22 }
 ];
