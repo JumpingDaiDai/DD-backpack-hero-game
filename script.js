@@ -293,14 +293,6 @@ class BackpackGame {
     return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
   }
 
-  // 點擊物資箱 icon：選取並在畫面上方（角色區塊下方）顯示形狀／名稱／描述
-  selectStashItem(st) {
-    this.selectedStashItem = st;
-    this.renderItemDetail(st);
-    this.renderStash();
-    this.log(`選取了【${st.item.name}】！點擊背包網格或拖曳放入，按 R 鍵可旋轉。`);
-  }
-
   clearStashSelection() {
     this.selectedStashItem = null;
     this.hideItemDetail();
@@ -454,7 +446,6 @@ class BackpackGame {
       this.renderPlacedItems();
     }
 
-    this.selectStashItem(mergedObj);
     this.log(`✨ 合成成功！【${mergedObj.item.name}】拖曳升級為 ${'★'.repeat(newStar)}！`);
   }
 
@@ -484,10 +475,11 @@ class BackpackGame {
     ghost.style.top = `${clientY - h / 2 - 46}px`; // 往上偏移，避免手指擋住縮圖
   }
 
-  // 觸控版拖曳：先記錄起點，移動超過門檻才視為「拖曳」，讓單純點擊仍能正常觸發原生 click
+  // 觸控版拖曳：先記錄起點，按住即顯示裝備資訊
   onTouchStart(e, source, obj, el) {
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
+    this.renderItemDetail(obj);
     this.touchState = {
       source, obj, el,
       startX: t.clientX, startY: t.clientY,
@@ -508,11 +500,6 @@ class BackpackGame {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       state.dragging = true;
       this.draggedItemObj = { source: state.source, obj: state.obj };
-      if (state.source === 'stash') {
-        // 拖曳中途避免重繪物資箱（會讓 state.el 失去參照），只更新詳情顯示
-        this.selectedStashItem = state.obj;
-        this.renderItemDetail(state.obj);
-      }
       state.ghost = this.createTouchGhost(state.obj);
       state.el.classList.add('dragging');
     }
@@ -536,7 +523,9 @@ class BackpackGame {
     const state = this.touchState;
     if (!state) return;
     this.touchState = null;
-    if (!state.dragging) return; // 單純點擊，交給原生 click 事件處理
+    this.hideItemDetail();
+
+    if (!state.dragging) return;
 
     e.preventDefault();
     if (state.ghost) state.ghost.remove();
@@ -558,6 +547,7 @@ class BackpackGame {
   onTouchCancel() {
     const state = this.touchState;
     this.touchState = null;
+    this.hideItemDetail();
     if (!state || !state.dragging) return;
     if (state.ghost) state.ghost.remove();
     state.el.classList.remove('dragging');
@@ -614,7 +604,7 @@ class BackpackGame {
       const star = st.star || 1;
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `stash-icon-btn ${this.selectedStashItem === st ? 'selected' : ''}`;
+      btn.className = 'stash-icon-btn';
       btn.draggable = true; // 啟用 HTML5 拖曳
       btn.innerHTML = `
         <span class="stash-icon-emoji">${st.item.icon}</span>
@@ -622,10 +612,10 @@ class BackpackGame {
         ${star > 1 ? `<span class="stash-icon-star">★${star}</span>` : ''}
       `;
 
-      // 點擊：選取並在上方顯示詳情
-      btn.addEventListener('click', () => {
-        this.selectStashItem(st);
-      });
+      // 按住顯示裝備資訊，放開隱藏
+      btn.addEventListener('mousedown', () => this.renderItemDetail(st));
+      btn.addEventListener('mouseup', () => this.hideItemDetail());
+      btn.addEventListener('mouseleave', () => this.hideItemDetail());
 
       // 物資箱圖示支援拖曳懸停與放置合成
       btn.addEventListener('dragover', (e) => {
@@ -648,9 +638,8 @@ class BackpackGame {
         }
       });
 
-      // 拖曳事件監聽 (搭配自訂形狀 DragImage 縮圖)。拖曳中途不重繪物資箱，避免節點參照失效
+      // 拖曳事件監聽
       btn.addEventListener('dragstart', (e) => {
-        this.selectedStashItem = st;
         this.renderItemDetail(st);
         this.draggedItemObj = { source: 'stash', obj: st };
         btn.classList.add('dragging');
@@ -660,6 +649,7 @@ class BackpackGame {
 
       btn.addEventListener('dragend', () => {
         btn.classList.remove('dragging');
+        this.hideItemDetail();
         this.clearGridHighlights();
       });
 
@@ -711,9 +701,14 @@ class BackpackGame {
         this.useItem(pi);
       });
 
+      // 按住顯示裝備資訊，放開隱藏
+      el.addEventListener('mousedown', () => this.renderItemDetail(pi));
+      el.addEventListener('mouseup', () => this.hideItemDetail());
+      el.addEventListener('mouseleave', () => this.hideItemDetail());
+
       // 拖曳已放置的物品
       el.addEventListener('dragstart', (e) => {
-        this.clearStashSelection();
+        this.renderItemDetail(pi);
         this.draggedItemObj = { source: 'placed', obj: pi };
         el.style.opacity = '0.5';
         this.createCustomDragImage(e, pi);
@@ -722,6 +717,7 @@ class BackpackGame {
 
       el.addEventListener('dragend', () => {
         el.style.opacity = '1';
+        this.hideItemDetail();
         this.clearGridHighlights();
       });
 
