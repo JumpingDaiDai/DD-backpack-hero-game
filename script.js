@@ -155,11 +155,18 @@ class BackpackGame {
     this.placedItems = [];
     this.grid = Array(this.gridRows).fill(null).map(() => Array(this.gridCols).fill(null));
 
-    // 初始贈送裝備進入備用箱
+    // 初始贈送多件裝備進入備用箱，方便測試橫向捲動與拖曳合成機制
     this.stashItems = [
       { instanceId: 'init_1', item: ITEMS_DATABASE[0], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[0].shape)), star: 1 }, // 鐵劍
-      { instanceId: 'init_2', item: ITEMS_DATABASE[1], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[1].shape)), star: 1 }, // 木盾
-      { instanceId: 'init_3', item: ITEMS_DATABASE[2], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[2].shape)), star: 1 }  // 藥水
+      { instanceId: 'init_2', item: ITEMS_DATABASE[0], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[0].shape)), star: 1 }, // 鐵劍 (方便測試合成)
+      { instanceId: 'init_3', item: ITEMS_DATABASE[1], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[1].shape)), star: 1 }, // 木盾
+      { instanceId: 'init_4', item: ITEMS_DATABASE[1], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[1].shape)), star: 1 }, // 木盾 (方便測試合成)
+      { instanceId: 'init_5', item: ITEMS_DATABASE[3], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[3].shape)), star: 1 }, // 紅寶石
+      { instanceId: 'init_6', item: ITEMS_DATABASE[3], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[3].shape)), star: 1 }, // 紅寶石 (測試橫向多寶石加成)
+      { instanceId: 'init_7', item: ITEMS_DATABASE[2], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[2].shape)), star: 1 }, // 生命藥水
+      { instanceId: 'init_8', item: ITEMS_DATABASE[4], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[4].shape)), star: 1 }, // 刺客匕首
+      { instanceId: 'init_9', item: ITEMS_DATABASE[6], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[6].shape)), star: 1 }, // 巨劍
+      { instanceId: 'init_10', item: ITEMS_DATABASE[8], shape: JSON.parse(JSON.stringify(ITEMS_DATABASE[8].shape)), star: 1 } // 藍寶石
     ];
 
     this.spawnEnemy();
