@@ -465,6 +465,12 @@ body {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   scroll-behavior: smooth;
+  scrollbar-width: none; /* Firefox 隱藏捲動條 */
+  -ms-overflow-style: none; /* IE/Edge 隱藏捲動條 */
+}
+
+.stash-bar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera 隱藏捲動條 */
 }
 
 .stash-bar.drag-over {
@@ -692,6 +698,7 @@ body {
 
 /* 訊息日誌區 */
 .log-panel {
+  display: none;
   background-color: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
