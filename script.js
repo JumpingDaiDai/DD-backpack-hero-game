@@ -333,6 +333,7 @@ class BackpackGame {
 
   renderItemDetail(st) {
     if (!this.itemDetailBarEl || !st) return;
+    this.activeViewingItem = st;
     const shape = st.shape;
     const h = shape.length;
     const w = shape[0].length;
@@ -508,7 +509,7 @@ class BackpackGame {
     ghost.style.top = `${clientY - h / 2 - 46}px`; // 往上偏移，避免手指擋住縮圖
   }
 
-  // 觸控版拖曳：先記錄起點，按住即顯示裝備資訊
+  // 觸控版拖曳：先記錄起點與觸發目標
   onTouchStart(e, source, obj, el) {
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
@@ -517,6 +518,7 @@ class BackpackGame {
       source, obj, el,
       startX: t.clientX, startY: t.clientY,
       dragging: false,
+      isScrollGesture: false, // 是否已被判定為橫向/縱向捲動手勢
       ghost: null,
       hoverCell: null
     };
@@ -524,13 +526,24 @@ class BackpackGame {
 
   onTouchMove(e) {
     const state = this.touchState;
-    if (!state) return;
+    if (!state || state.isScrollGesture) return;
+
     const t = e.touches[0];
     const dx = t.clientX - state.startX;
     const dy = t.clientY - state.startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
 
     if (!state.dragging) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (absX < 8 && absY < 8) return;
+
+      // 手勢方向判定：如果在物資區 (stash) 且主要為水平滑動 (absX > absY)，判定為區塊滾動，交由瀏覽器原生捲動處置
+      if (state.source === 'stash' && absX > absY) {
+        state.isScrollGesture = true;
+        this.hideItemDetail();
+        return;
+      }
+
       state.dragging = true;
       this.draggedItemObj = { source: state.source, obj: state.obj };
       state.ghost = this.createTouchGhost(state.obj);
@@ -888,13 +901,28 @@ class BackpackGame {
   }
 
   rotateSelected() {
-    if (this.selectedStashItem) {
-      this.selectedStashItem.shape = this.rotateMatrix(this.selectedStashItem.shape);
-      this.log(`旋轉了【${this.selectedStashItem.item.name}】！`);
-      this.renderItemDetail(this.selectedStashItem);
+    // 優先旋轉：正在被拖曳/按住的裝備、最後檢視的裝備、或物資箱中的第一件裝備
+    let target = (this.draggedItemObj && this.draggedItemObj.obj)
+      || this.activeViewingItem
+      || (this.stashItems.length > 0 ? this.stashItems[0] : null);
+
+    if (target) {
+      target.shape = this.rotateMatrix(target.shape);
+      this.log(`旋轉了【${target.item.name}】！`);
+      this.renderItemDetail(target);
       this.renderStash();
+      this.renderPlacedItems();
+      
+      // 如果正在拖曳，刷新 Ghost 縮圖與高亮網格
+      if (this.touchState && this.touchState.ghost) {
+        this.touchState.ghost.remove();
+        this.touchState.ghost = this.createTouchGhost(target);
+        if (this.touchState.hoverCell) {
+          this.highlightGridCells(this.touchState.hoverCell.r, this.touchState.hoverCell.c, target.shape, target);
+        }
+      }
     } else {
-      this.log('請先點擊選取備用箱中的裝備再進行旋轉！');
+      this.log('請先按住或拖曳備用箱中的裝備再進行旋轉！');
     }
   }
 
