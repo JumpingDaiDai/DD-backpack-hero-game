@@ -274,19 +274,6 @@ class BackpackGame {
     return { cellWidth: rect.width, cellHeight: rect.height, gap };
   }
 
-  // 依觸控座標推算對應的背包格子（不用 elementFromPoint，避免被已放置裝備的浮層擋住判斷）
-  cellFromPoint(clientX, clientY) {
-    const rect = this.backpackGridEl.getBoundingClientRect();
-    const style = getComputedStyle(this.backpackGridEl);
-    const { cellWidth, cellHeight, gap } = this.getCellMetrics();
-    const x = clientX - rect.left - (parseFloat(style.paddingLeft) || 0);
-    const y = clientY - rect.top - (parseFloat(style.paddingTop) || 0);
-    if (x < 0 || y < 0) return null;
-    const c = Math.floor(x / (cellWidth + gap));
-    const r = Math.floor(y / (cellHeight + gap));
-    if (r < 0 || r >= this.gridRows || c < 0 || c >= this.gridCols) return null;
-    return { r, c };
-  }
 
   isPointInStash(clientX, clientY) {
     const rect = this.stashContainerEl.getBoundingClientRect();
@@ -503,10 +490,25 @@ class BackpackGame {
   }
 
   updateTouchGhostPosition(ghost, clientX, clientY) {
-    const w = ghost.offsetWidth;
-    const h = ghost.offsetHeight;
-    ghost.style.left = `${clientX - w / 2}px`;
-    ghost.style.top = `${clientY - h / 2 - 46}px`; // 往上偏移，避免手指擋住縮圖
+    const { cellWidth, cellHeight } = this.getCellMetrics();
+    // 以左上角第一格中心點對齊觸控點，並稍微向上偏移 20px 避免手指完全遮擋
+    ghost.style.left = `${clientX - cellWidth / 2}px`;
+    ghost.style.top = `${clientY - cellHeight / 2 - 20}px`;
+  }
+
+  // 依觸控座標推算對應的背包格子（以裝備左上角 (0,0) 為放置起點）
+  cellFromPoint(clientX, clientY) {
+    const rect = this.backpackGridEl.getBoundingClientRect();
+    const style = getComputedStyle(this.backpackGridEl);
+    const { cellWidth, cellHeight, gap } = this.getCellMetrics();
+    // 考慮 Ghost 對齊第一格中心的偏移，精確還原裝備左上角對應的格子
+    const x = clientX - rect.left - (parseFloat(style.paddingLeft) || 0);
+    const y = clientY - rect.top - (parseFloat(style.paddingTop) || 0);
+    if (x < 0 || y < 0) return null;
+    const c = Math.floor(x / (cellWidth + gap));
+    const r = Math.floor(y / (cellHeight + gap));
+    if (r < 0 || r >= this.gridRows || c < 0 || c >= this.gridCols) return null;
+    return { r, c };
   }
 
   // 觸控版拖曳：先記錄起點與觸發目標
@@ -631,10 +633,8 @@ class BackpackGame {
     `;
 
     document.body.appendChild(dragImg);
-    // 使用精確的半尺寸讓 DragImage 的幾何中心完全對齊滑鼠游標原點
-    const dragW = w * cellWidth + (w - 1) * gap;
-    const dragH = h * cellHeight + (h - 1) * gap;
-    e.dataTransfer.setDragImage(dragImg, dragW / 2, dragH / 2);
+    // 以裝備第一格 (左上角 [0,0]) 的中心點對齊滑鼠游標原點，確保 dragover 格子時左上角精確對應滑鼠所在格子
+    e.dataTransfer.setDragImage(dragImg, cellWidth / 2, cellHeight / 2);
 
     setTimeout(() => {
       document.body.removeChild(dragImg);
